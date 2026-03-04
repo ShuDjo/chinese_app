@@ -1,8 +1,9 @@
 # main.py
 
+import json
 import os
 import tempfile
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from openai import OpenAI
 
@@ -56,8 +57,6 @@ Chinese input:
             ],
             response_format={"type": "json_object"},
         )
-
-        import json
 
         result = json.loads(completion.choices[0].message.content)
 
