@@ -21,7 +21,7 @@ struct TranslationResult: Decodable {
 }
 
 class APIClient {
-    let backendURL = URL(string: "http://chinese-voice-backend.onrender.com/translate")!  // change later to Fly.io
+    let backendURL = URL(string: "https://chinese-voice-backend.onrender.com/translate")!  // change later to Fly.io
 
     func uploadAudio(url: URL, completion: @escaping (TranslationResult?, String?) -> Void) {
         var request = URLRequest(url: backendURL)
