@@ -15,7 +15,7 @@ struct StrokeOrderView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        webView.loadHTMLString(makeHTML(), baseURL: nil)
+        webView.loadHTMLString(makeHTML(), baseURL: URL(string: "https://cdn.jsdelivr.net")!)
     }
 
     private func makeHTML() -> String {
