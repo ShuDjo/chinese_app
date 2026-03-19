@@ -6,7 +6,8 @@
 //
 import Foundation
 
-struct WordResult: Decodable {
+struct WordResult: Decodable, Identifiable {
+    var id: String { word }
     let word: String
     let english: String
     let pinyin: String

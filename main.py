@@ -3,13 +3,18 @@
 import json
 import os
 import tempfile
+import urllib.error
+import urllib.parse
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import jieba
 import psycopg2
 import psycopg2.extras
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from openai import OpenAI
+from psycopg2.extras import Json
 
 app = FastAPI(title="Chinese Voice Translator")
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -31,8 +36,17 @@ def init_db():
                     created_at TIMESTAMPTZ DEFAULT NOW()
                 )
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS character_strokes (
+                    character  TEXT PRIMARY KEY,
+                    stroke_data JSONB NOT NULL,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """)
         conn.commit()
 
+
+# ── word cache ────────────────────────────────────────────────────────────────
 
 def get_cached_words(words: list[str]) -> dict[str, dict]:
     if not words:
@@ -57,6 +71,75 @@ def store_words(entries: list[dict]) -> None:
             )
         conn.commit()
 
+
+# ── stroke cache ──────────────────────────────────────────────────────────────
+
+def is_cjk(char: str) -> bool:
+    cp = ord(char)
+    return (0x4E00 <= cp <= 0x9FFF or
+            0x3400 <= cp <= 0x4DBF or
+            0x20000 <= cp <= 0x2A6DF)
+
+
+def fetch_stroke_data_from_cdn(char: str) -> dict | None:
+    encoded = urllib.parse.quote(char)
+    url = f"https://cdn.jsdelivr.net/npm/hanzi-writer-data@latest/{encoded}.json"
+    try:
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            return json.loads(resp.read())
+    except Exception:
+        return None
+
+
+def get_cached_strokes(characters: list[str]) -> dict[str, dict]:
+    if not characters:
+        return {}
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT character, stroke_data FROM character_strokes WHERE character = ANY(%s)",
+                (characters,),
+            )
+            rows = cur.fetchall()
+    return {row["character"]: row["stroke_data"] for row in rows}
+
+
+def store_strokes(entries: list[dict]) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            psycopg2.extras.execute_batch(
+                cur,
+                "INSERT INTO character_strokes (character, stroke_data) VALUES (%(character)s, %(stroke_data)s) ON CONFLICT (character) DO NOTHING",
+                entries,
+            )
+        conn.commit()
+
+
+def cache_stroke_data(words: list[str]) -> None:
+    """Background task: fetch and store stroke data for all CJK characters in words."""
+    all_chars = list({char for word in words for char in word if is_cjk(char)})
+    if not all_chars:
+        return
+
+    cached = get_cached_strokes(all_chars)
+    missing = [c for c in all_chars if c not in cached]
+    if not missing:
+        return
+
+    new_entries = []
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(fetch_stroke_data_from_cdn, char): char for char in missing}
+        for future in as_completed(futures):
+            char = futures[future]
+            data = future.result()
+            if data:
+                new_entries.append({"character": char, "stroke_data": Json(data)})
+
+    if new_entries:
+        store_strokes(new_entries)
+
+
+# ── LLM helpers ───────────────────────────────────────────────────────────────
 
 def segment_chinese(text: str) -> list[str]:
     return [w.strip() for w in jieba.cut(text) if w.strip()]
@@ -98,8 +181,10 @@ def translate_sentence(chinese_text: str) -> str:
 init_db()
 
 
+# ── endpoint ──────────────────────────────────────────────────────────────────
+
 @app.post("/translate")
-async def translate_audio(file: UploadFile = File(...)):
+async def translate_audio(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     try:
         suffix = os.path.splitext(file.filename or "")[1] or ".m4a"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -144,6 +229,9 @@ async def translate_audio(file: UploadFile = File(...)):
 
         # 6. Full sentence translation
         sentence_translation = translate_sentence(chinese_text)
+
+        # 7. Cache stroke data in the background (non-blocking)
+        background_tasks.add_task(cache_stroke_data, words)
 
         return JSONResponse({
             "chinese_transcription": chinese_text,
