@@ -33,7 +33,8 @@ struct StrokeOrderView: UIViewRepresentable {
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { background: #fff; display: flex; flex-wrap: wrap; justify-content: center; padding: 24px 16px; gap: 24px; }
+            body { background: #fff; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; gap: 24px; }
+            #chars { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; }
             .char-box { text-align: center; }
             .label { margin-top: 8px; font-size: 16px; font-family: -apple-system, sans-serif; color: #444; }
             .outline { fill: none; stroke: #ddd; stroke-width: 40; stroke-linecap: round; stroke-linejoin: round; }
@@ -41,35 +42,43 @@ struct StrokeOrderView: UIViewRepresentable {
                        stroke-dasharray: 3000; stroke-dashoffset: 3000; }
             @keyframes draw { from { stroke-dashoffset: 3000; } to { stroke-dashoffset: 0; } }
             #repeat-btn {
-              display: block; margin: 0 auto 24px;
               padding: 10px 32px; font-size: 16px;
               font-family: -apple-system, sans-serif;
-              background: #e74c3c; color: #fff;
+              background: #007AFF; color: #fff;
               border: none; border-radius: 20px; cursor: pointer;
             }
           </style>
         </head>
         <body>
-          <button id="repeat-btn" onclick="repeatAll()">Repeat</button>
+          <div id="chars">
           \(svgBoxes)
+          </div>
+          <button id="repeat-btn" onclick="repeatAll()">Repeat</button>
           <script>
             var allGroups = [];
             var allTimers = [];
 
-            function animateStrokes(els, n, isRepeat) {
-              els.forEach(function(el) { el.style.animation = 'none'; });
-              void els[0].offsetWidth;
-              els.forEach(function(el, i) {
-                el.style.animation = 'draw 0.8s ease ' + (i * 1.2) + 's forwards';
+            function animateStrokes(els, n) {
+              els.forEach(function(el) {
+                el.style.animation = 'none';
+                el.style.strokeDashoffset = '3000';
               });
-              var t = setTimeout(function() { animateStrokes(els, n, false); }, n * 1200 + 1500);
-              allTimers.push(t);
+              requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                  els.forEach(function(el, i) {
+                    el.style.strokeDashoffset = '';
+                    el.style.animation = 'draw 0.8s ease ' + (i * 1.2) + 's forwards';
+                  });
+                  var t = setTimeout(function() { animateStrokes(els, n); }, n * 1200 + 1500);
+                  allTimers.push(t);
+                });
+              });
             }
 
             function repeatAll() {
               allTimers.forEach(function(t) { clearTimeout(t); });
               allTimers = [];
-              allGroups.forEach(function(g) { animateStrokes(g.els, g.n, true); });
+              allGroups.forEach(function(g) { animateStrokes(g.els, g.n); });
             }
 
             function drawChar(char, svgId) {
