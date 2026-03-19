@@ -6,48 +6,31 @@ import WebKit
 struct StrokeOrderView: UIViewRepresentable {
     let word: String
 
+    func makeCoordinator() -> Coordinator {
+        Coordinator(word: word)
+    }
+
     func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        let webView = WKWebView(frame: .zero, configuration: config)
+        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        webView.navigationDelegate = context.coordinator
         webView.backgroundColor = UIColor.systemBackground
         webView.scrollView.isScrollEnabled = false
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
+        context.coordinator.word = word
         webView.loadHTMLString(makeHTML(), baseURL: URL(string: "https://cdn.jsdelivr.net")!)
     }
 
+    // HTML contains only containers + HanziWriter script — no writer creation yet.
+    // Writer creation is injected via evaluateJavaScript after page finishes loading.
     private func makeHTML() -> String {
-        let chars = word.filter { c in
-            let cp = c.unicodeScalars.first!.value
-            return (0x4E00...0x9FFF).contains(cp) ||
-                   (0x3400...0x4DBF).contains(cp)
-        }
-
+        let chars = cjkChars()
         var containers = ""
-        var writers = ""
         for (i, char) in chars.enumerated() {
-            let escaped = String(char)
-                .replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: "'", with: "\\'")
             containers += "<div class='char-box'><div id='c\(i)'></div><p class='label'>\(char)</p></div>\n"
-            writers += """
-            (function() {
-              var w = HanziWriter.create('c\(i)', '\(escaped)', {
-                width: 140, height: 140, padding: 5,
-                showOutline: true,
-                strokeColor: '#1a1a2e',
-                outlineColor: '#d0d0d0',
-                strokeAnimationSpeed: 0.8,
-                delayBetweenStrokes: 250,
-                delayBetweenLoops: 2000
-              });
-              w.loopCharacter();
-            })();
-            """
         }
-
         return """
         <!DOCTYPE html>
         <html>
@@ -55,31 +38,59 @@ struct StrokeOrderView: UIViewRepresentable {
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
           <style>
             * { box-sizing: border-box; margin: 0; padding: 0; }
-            body {
-              background: #ffffff;
-              display: flex;
-              flex-wrap: wrap;
-              justify-content: center;
-              align-items: flex-start;
-              padding: 24px 16px;
-              gap: 24px;
-            }
+            body { background: #fff; display: flex; flex-wrap: wrap; justify-content: center; padding: 24px 16px; gap: 24px; }
             .char-box { text-align: center; }
-            .label {
-              margin-top: 8px;
-              font-size: 16px;
-              font-family: -apple-system, sans-serif;
-              color: #444;
-            }
+            .label { margin-top: 8px; font-size: 16px; font-family: -apple-system, sans-serif; color: #444; }
           </style>
         </head>
         <body>
           \(containers)
           <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
-          <script>\(writers)</script>
         </body>
         </html>
         """
+    }
+
+    private func cjkChars() -> [Character] {
+        word.filter { c in
+            let cp = c.unicodeScalars.first!.value
+            return (0x4E00...0x9FFF).contains(cp) || (0x3400...0x4DBF).contains(cp)
+        }
+    }
+
+    // MARK: Coordinator
+    class Coordinator: NSObject, WKNavigationDelegate {
+        var word: String
+
+        init(word: String) { self.word = word }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            let chars = word.filter { c in
+                let cp = c.unicodeScalars.first!.value
+                return (0x4E00...0x9FFF).contains(cp) || (0x3400...0x4DBF).contains(cp)
+            }
+            var js = ""
+            for (i, char) in chars.enumerated() {
+                let escaped = String(char)
+                    .replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "'", with: "\\'")
+                js += """
+                (function() {
+                  var w = HanziWriter.create('c\(i)', '\(escaped)', {
+                    width: 140, height: 140, padding: 5,
+                    showOutline: true,
+                    strokeColor: '#1a1a2e',
+                    outlineColor: '#d0d0d0',
+                    strokeAnimationSpeed: 0.8,
+                    delayBetweenStrokes: 250,
+                    delayBetweenLoops: 2000
+                  });
+                  w.loopCharacter();
+                })();
+                """
+            }
+            webView.evaluateJavaScript(js, completionHandler: nil)
+        }
     }
 }
 
