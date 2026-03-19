@@ -39,18 +39,16 @@ struct StrokeOrderView: UIViewRepresentable {
                 .replacingOccurrences(of: "'", with: "\\'")
             containers += "<div class='char-box'><div id='c\(i)'></div><p class='label'>\(char)</p></div>\n"
             writers += """
-            (function() {
-              var w = HanziWriter.create('c\(i)', '\(escaped)', {
-                width: 140, height: 140, padding: 5,
-                showOutline: true,
-                strokeColor: '#1a1a2e',
-                outlineColor: '#d0d0d0',
-                strokeAnimationSpeed: 0.8,
-                delayBetweenStrokes: 250,
-                delayBetweenLoops: 2000
-              });
-              w.loopCharacter();
-            })();
+            HanziWriter.create('c\(i)', '\(escaped)', {
+              width: 140, height: 140, padding: 5,
+              showOutline: true,
+              showCharacter: false,
+              strokeColor: '#e74c3c',
+              outlineColor: '#ddd',
+              strokeAnimationSpeed: 0.4,
+              delayBetweenStrokes: 600,
+              delayBetweenLoops: 1500
+            }).then(function(w) { w.loopCharacter(); });
             """
         }
         return """
