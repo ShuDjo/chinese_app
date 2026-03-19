@@ -20,16 +20,38 @@ struct StrokeOrderView: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.word = word
-        webView.loadHTMLString(makeHTML(), baseURL: URL(string: "https://cdn.jsdelivr.net")!)
+        webView.loadHTMLString(makeHTML(), baseURL: nil)
     }
 
-    // HTML contains only containers + HanziWriter script — no writer creation yet.
-    // Writer creation is injected via evaluateJavaScript after page finishes loading.
+    private static let hanziWriterJS: String = {
+        guard let url = Bundle.main.url(forResource: "hanzi-writer.min", withExtension: "js"),
+              let content = try? String(contentsOf: url) else { return "" }
+        return content
+    }()
+
     private func makeHTML() -> String {
         let chars = cjkChars()
         var containers = ""
+        var writers = ""
         for (i, char) in chars.enumerated() {
+            let escaped = String(char)
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "'", with: "\\'")
             containers += "<div class='char-box'><div id='c\(i)'></div><p class='label'>\(char)</p></div>\n"
+            writers += """
+            (function() {
+              var w = HanziWriter.create('c\(i)', '\(escaped)', {
+                width: 140, height: 140, padding: 5,
+                showOutline: true,
+                strokeColor: '#1a1a2e',
+                outlineColor: '#d0d0d0',
+                strokeAnimationSpeed: 0.8,
+                delayBetweenStrokes: 250,
+                delayBetweenLoops: 2000
+              });
+              w.loopCharacter();
+            })();
+            """
         }
         return """
         <!DOCTYPE html>
@@ -45,7 +67,8 @@ struct StrokeOrderView: UIViewRepresentable {
         </head>
         <body>
           \(containers)
-          <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+          <script>\(StrokeOrderView.hanziWriterJS)</script>
+          <script>\(writers)</script>
         </body>
         </html>
         """
@@ -64,33 +87,6 @@ struct StrokeOrderView: UIViewRepresentable {
 
         init(word: String) { self.word = word }
 
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            let chars = word.filter { c in
-                let cp = c.unicodeScalars.first!.value
-                return (0x4E00...0x9FFF).contains(cp) || (0x3400...0x4DBF).contains(cp)
-            }
-            var js = ""
-            for (i, char) in chars.enumerated() {
-                let escaped = String(char)
-                    .replacingOccurrences(of: "\\", with: "\\\\")
-                    .replacingOccurrences(of: "'", with: "\\'")
-                js += """
-                (function() {
-                  var w = HanziWriter.create('c\(i)', '\(escaped)', {
-                    width: 140, height: 140, padding: 5,
-                    showOutline: true,
-                    strokeColor: '#1a1a2e',
-                    outlineColor: '#d0d0d0',
-                    strokeAnimationSpeed: 0.8,
-                    delayBetweenStrokes: 250,
-                    delayBetweenLoops: 2000
-                  });
-                  w.loopCharacter();
-                })();
-                """
-            }
-            webView.evaluateJavaScript(js, completionHandler: nil)
-        }
     }
 }
 
