@@ -40,18 +40,36 @@ struct StrokeOrderView: UIViewRepresentable {
             .stroke  { fill: none; stroke: #e74c3c; stroke-width: 40; stroke-linecap: round; stroke-linejoin: round;
                        stroke-dasharray: 3000; stroke-dashoffset: 3000; }
             @keyframes draw { from { stroke-dashoffset: 3000; } to { stroke-dashoffset: 0; } }
+            #repeat-btn {
+              display: block; margin: 0 auto 24px;
+              padding: 10px 32px; font-size: 16px;
+              font-family: -apple-system, sans-serif;
+              background: #e74c3c; color: #fff;
+              border: none; border-radius: 20px; cursor: pointer;
+            }
           </style>
         </head>
         <body>
+          <button id="repeat-btn" onclick="repeatAll()">Repeat</button>
           \(svgBoxes)
           <script>
-            function animateStrokes(els, n) {
+            var allGroups = [];
+            var allTimers = [];
+
+            function animateStrokes(els, n, isRepeat) {
               els.forEach(function(el) { el.style.animation = 'none'; });
               void els[0].offsetWidth;
               els.forEach(function(el, i) {
                 el.style.animation = 'draw 0.8s ease ' + (i * 1.2) + 's forwards';
               });
-              setTimeout(function() { animateStrokes(els, n); }, n * 1200 + 1500);
+              var t = setTimeout(function() { animateStrokes(els, n, false); }, n * 1200 + 1500);
+              allTimers.push(t);
+            }
+
+            function repeatAll() {
+              allTimers.forEach(function(t) { clearTimeout(t); });
+              allTimers = [];
+              allGroups.forEach(function(g) { animateStrokes(g.els, g.n, true); });
             }
 
             function drawChar(char, svgId) {
@@ -79,7 +97,8 @@ struct StrokeOrderView: UIViewRepresentable {
                   });
 
                   svg.appendChild(g);
-                  animateStrokes(strokeEls, data.strokes.length);
+                  allGroups.push({ els: strokeEls, n: data.strokes.length });
+                  animateStrokes(strokeEls, data.strokes.length, false);
                 });
             }
 
