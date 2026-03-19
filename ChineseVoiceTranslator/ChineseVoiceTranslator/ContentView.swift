@@ -39,20 +39,41 @@ struct ContentView: View {
 
             if let result = result {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("🗣 Chinese (transcription)")
+                    Divider()
+                    Text("Result")
                         .font(.headline)
-                    Text(result.chinese_transcription)
 
-                    if let improved = result.improved_chinese {
-                        Text("✍️ Improved Chinese:")
-                            .font(.headline)
-                        Text(improved)
+                    Text(result.chinese_transcription)
+                        .font(.title3)
+
+                    if let sentence = result.sentence_translation {
+                        Text(sentence)
+                            .foregroundColor(.secondary)
                     }
 
-                    if let english = result.english_translation {
-                        Text("🇺🇸 English translation:")
+                    if !result.words.isEmpty {
+                        Divider()
+                        Text("Words")
                             .font(.headline)
-                        Text(english)
+
+                        ForEach(result.words, id: \.word) { wordResult in
+                            HStack(spacing: 12) {
+                                Text(wordResult.word)
+                                    .frame(minWidth: 48, alignment: .leading)
+                                    .bold()
+                                Text(wordResult.pinyin)
+                                    .foregroundColor(.secondary)
+                                    .frame(minWidth: 64, alignment: .leading)
+                                Text(wordResult.english)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                if wordResult.from_cache {
+                                    Circle()
+                                        .fill(Color.green)
+                                        .frame(width: 8, height: 8)
+                                }
+                            }
+                            .font(.callout)
+                        }
                     }
                 }
                 .padding()
@@ -68,4 +89,3 @@ struct ContentView: View {
         .padding()
     }
 }
-

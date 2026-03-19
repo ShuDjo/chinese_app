@@ -6,10 +6,17 @@
 //
 import Foundation
 
+struct WordResult: Decodable {
+    let word: String
+    let english: String
+    let pinyin: String
+    let from_cache: Bool
+}
+
 struct TranslationResult: Decodable {
     let chinese_transcription: String
-    let english_translation: String?
-    let improved_chinese: String?
+    let sentence_translation: String?
+    let words: [WordResult]
 }
 
 class APIClient {
