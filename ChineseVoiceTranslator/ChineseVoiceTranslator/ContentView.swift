@@ -6,51 +6,26 @@ import WebKit
 struct StrokeOrderView: UIViewRepresentable {
     let word: String
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(word: word)
-    }
-
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
-        webView.navigationDelegate = context.coordinator
         webView.backgroundColor = UIColor.systemBackground
         webView.scrollView.isScrollEnabled = false
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        context.coordinator.word = word
-        webView.loadHTMLString(makeHTML(), baseURL: nil)
+        webView.loadHTMLString(makeHTML(), baseURL: URL(string: "https://cdn.jsdelivr.net")!)
     }
-
-    private static let hanziWriterJS: String = {
-        guard let url = Bundle.main.url(forResource: "hanzi-writer.min", withExtension: "js"),
-              let content = try? String(contentsOf: url) else { return "" }
-        return content
-    }()
 
     private func makeHTML() -> String {
         let chars = cjkChars()
-        var containers = ""
-        var writers = ""
+        var svgBoxes = ""
+        var fetchCalls = ""
         for (i, char) in chars.enumerated() {
-            let escaped = String(char)
-                .replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: "'", with: "\\'")
-            containers += "<div class='char-box'><div id='c\(i)'></div><p class='label'>\(char)</p></div>\n"
-            writers += """
-            HanziWriter.create('c\(i)', '\(escaped)', {
-              width: 140, height: 140, padding: 5,
-              showOutline: true,
-              showCharacter: false,
-              strokeColor: '#e74c3c',
-              outlineColor: '#ddd',
-              strokeAnimationSpeed: 0.4,
-              delayBetweenStrokes: 600,
-              delayBetweenLoops: 1500
-            }).then(function(w) { w.loopCharacter(); });
-            """
+            svgBoxes += "<div class='char-box'><svg id='s\(i)' viewBox='0 0 1024 1024' width='140' height='140'></svg><p class='label'>\(char)</p></div>\n"
+            fetchCalls += "drawChar('\(char)', 's\(i)');\n"
         }
+
         return """
         <!DOCTYPE html>
         <html>
@@ -61,12 +36,55 @@ struct StrokeOrderView: UIViewRepresentable {
             body { background: #fff; display: flex; flex-wrap: wrap; justify-content: center; padding: 24px 16px; gap: 24px; }
             .char-box { text-align: center; }
             .label { margin-top: 8px; font-size: 16px; font-family: -apple-system, sans-serif; color: #444; }
+            .outline { fill: none; stroke: #ddd; stroke-width: 40; stroke-linecap: round; stroke-linejoin: round; }
+            .stroke  { fill: none; stroke: #e74c3c; stroke-width: 40; stroke-linecap: round; stroke-linejoin: round;
+                       stroke-dasharray: 3000; stroke-dashoffset: 3000; }
+            @keyframes draw { from { stroke-dashoffset: 3000; } to { stroke-dashoffset: 0; } }
           </style>
         </head>
         <body>
-          \(containers)
-          <script>\(StrokeOrderView.hanziWriterJS)</script>
-          <script>\(writers)</script>
+          \(svgBoxes)
+          <script>
+            function animateStrokes(els, n) {
+              els.forEach(function(el) { el.style.animation = 'none'; });
+              void els[0].offsetWidth;
+              els.forEach(function(el, i) {
+                el.style.animation = 'draw 0.8s ease ' + (i * 1.2) + 's forwards';
+              });
+              setTimeout(function() { animateStrokes(els, n); }, n * 1200 + 1500);
+            }
+
+            function drawChar(char, svgId) {
+              fetch('https://cdn.jsdelivr.net/npm/hanzi-writer-data@latest/' + encodeURIComponent(char) + '.json')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                  var svg = document.getElementById(svgId);
+                  var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                  g.setAttribute('transform', 'scale(1,-1) translate(0,-900)');
+
+                  data.strokes.forEach(function(path) {
+                    var el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    el.setAttribute('d', path);
+                    el.setAttribute('class', 'outline');
+                    g.appendChild(el);
+                  });
+
+                  var strokeEls = [];
+                  data.strokes.forEach(function(path, i) {
+                    var el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    el.setAttribute('d', path);
+                    el.setAttribute('class', 'stroke');
+                    g.appendChild(el);
+                    strokeEls.push(el);
+                  });
+
+                  svg.appendChild(g);
+                  animateStrokes(strokeEls, data.strokes.length);
+                });
+            }
+
+            \(fetchCalls)
+          </script>
         </body>
         </html>
         """
@@ -77,14 +95,6 @@ struct StrokeOrderView: UIViewRepresentable {
             let cp = c.unicodeScalars.first!.value
             return (0x4E00...0x9FFF).contains(cp) || (0x3400...0x4DBF).contains(cp)
         }
-    }
-
-    // MARK: Coordinator
-    class Coordinator: NSObject, WKNavigationDelegate {
-        var word: String
-
-        init(word: String) { self.word = word }
-
     }
 }
 
