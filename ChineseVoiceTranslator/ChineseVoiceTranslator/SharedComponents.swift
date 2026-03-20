@@ -133,15 +133,15 @@ struct WordRowView: View {
         Button(action: onTap) {
             HStack(spacing: 12) {
                 // Chinese character + pinyin side by side
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(word.word)
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: 30, weight: .bold))
                         .foregroundColor(Color(UIColor.label))
                     Text(word.pinyin)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundColor(Theme.red)
                 }
-                .frame(minWidth: 90, alignment: .leading)
+                .frame(minWidth: 110, alignment: .leading)
 
                 // English
                 Text(word.english)
