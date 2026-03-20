@@ -23,9 +23,17 @@ class QuizSpeaker: NSObject, ObservableObject {
 
 // MARK: - Quiz View
 
+enum QuizMode: Equatable {
+    case custom, random, recent
+}
+
 struct QuizView: View {
     // Setup
     @State private var topic = ""
+    @State private var quizMode: QuizMode = .custom
+    @State private var sources: [String]? = nil
+    @State private var availableLessons: [LessonInfo] = []
+    @State private var isLoadingLessons = false
 
     // Session
     @State private var sessionActive = false
@@ -98,12 +106,59 @@ struct QuizView: View {
                 .frame(height: 140)
                 .ignoresSafeArea(edges: .top)
 
-                VStack(spacing: 24) {
-                    // Topic input card
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("Choose a topic", systemImage: "text.book.closed.fill")
+                VStack(spacing: 20) {
+                    // Quick-pick card
+                    VStack(alignment: .leading, spacing: 14) {
+                        Label("Quick Start", systemImage: "bolt.fill")
                             .font(.headline)
                             .foregroundColor(Theme.red)
+
+                        HStack(spacing: 12) {
+                            quickPickButton(
+                                title: "Random",
+                                icon: "shuffle",
+                                mode: .random,
+                                isLoading: isLoadingLessons && availableLessons.isEmpty
+                            ) {
+                                pickRandom()
+                            }
+                            quickPickButton(
+                                title: "Recent Lessons",
+                                icon: "clock.fill",
+                                mode: .recent,
+                                isLoading: isLoadingLessons && availableLessons.isEmpty
+                            ) {
+                                pickRecent()
+                            }
+                        }
+
+                        if quizMode == .recent, let sources = sources {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ForEach(sources, id: \.self) { s in
+                                    Label(s.replacingOccurrences(of: ".pdf", with: ""),
+                                          systemImage: "doc.text.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        if quizMode == .random, !topic.isEmpty {
+                            Label(topic, systemImage: "shuffle")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(16)
+                    .background(Color.white)
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.07), radius: 8, x: 0, y: 3)
+                    .padding(.horizontal, 16)
+
+                    // Custom topic card
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Custom Topic", systemImage: "text.book.closed.fill")
+                            .font(.headline)
+                            .foregroundColor(quizMode == .custom ? Theme.red : .secondary)
 
                         TextField("e.g. greetings, measure words, tones", text: $topic)
                             .padding(.horizontal, 14)
@@ -111,6 +166,12 @@ struct QuizView: View {
                             .background(Color(UIColor.secondarySystemBackground))
                             .cornerRadius(10)
                             .font(.callout)
+                            .onChange(of: topic) { _ in
+                                if !topic.isEmpty {
+                                    quizMode = .custom
+                                    sources = nil
+                                }
+                            }
                     }
                     .padding(16)
                     .background(Color.white)
@@ -159,6 +220,31 @@ struct QuizView: View {
             }
         }
         .scrollIndicators(.hidden)
+        .onAppear { loadLessons() }
+    }
+
+    // MARK: - Quick Pick Button
+
+    @ViewBuilder
+    private func quickPickButton(title: String, icon: String, mode: QuizMode, isLoading: Bool, action: @escaping () -> Void) -> some View {
+        let selected = quizMode == mode
+        Button(action: action) {
+            HStack(spacing: 6) {
+                if isLoading {
+                    ProgressView().scaleEffect(0.8)
+                } else {
+                    Image(systemName: icon)
+                }
+                Text(title)
+                    .fontWeight(.semibold)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(selected ? Theme.red : Color(UIColor.secondarySystemBackground))
+            .foregroundColor(selected ? .white : .primary)
+            .cornerRadius(10)
+        }
+        .disabled(isLoading)
     }
 
     // MARK: - Session View
@@ -538,10 +624,38 @@ struct QuizView: View {
 
     // MARK: - Actions
 
+    func loadLessons() {
+        guard availableLessons.isEmpty else { return }
+        isLoadingLessons = true
+        api.fetchLessons { lessons, _ in
+            DispatchQueue.main.async {
+                isLoadingLessons = false
+                availableLessons = lessons
+            }
+        }
+    }
+
+    func pickRandom() {
+        guard !availableLessons.isEmpty else { return }
+        let lesson = availableLessons.randomElement()!
+        let name = lesson.source.replacingOccurrences(of: ".pdf", with: "")
+        quizMode = .random
+        topic = name
+        sources = [lesson.source]
+    }
+
+    func pickRecent() {
+        let recent = Array(availableLessons.prefix(2))
+        guard !recent.isEmpty else { return }
+        quizMode = .recent
+        sources = recent.map { $0.source }
+        topic = recent.map { $0.source.replacingOccurrences(of: ".pdf", with: "") }.joined(separator: " & ")
+    }
+
     func beginSession() {
         isLoadingQuestion = true
         errorMessage = nil
-        api.startQuiz(topic: topic) { question, err in
+        api.startQuiz(topic: topic, sources: sources) { question, err in
             DispatchQueue.main.async {
                 isLoadingQuestion = false
                 if let err = err { errorMessage = err; return }
@@ -585,7 +699,7 @@ struct QuizView: View {
     func loadNextQuestion() {
         isLoadingQuestion = true
         errorMessage = nil
-        api.nextQuestion(topic: topic, history: history) { question, err in
+        api.nextQuestion(topic: topic, history: history, sources: sources) { question, err in
             DispatchQueue.main.async {
                 isLoadingQuestion = false
                 guard !sessionEnded else { return }
@@ -612,7 +726,7 @@ struct QuizView: View {
             return
         }
         isEvaluating = true
-        api.finishQuiz(topic: topic, history: history) { eval, err in
+        api.finishQuiz(topic: topic, history: history, sources: sources) { eval, err in
             DispatchQueue.main.async {
                 isEvaluating = false
                 if let err = err { errorMessage = err; return }
@@ -623,6 +737,8 @@ struct QuizView: View {
 
     func resetSession() {
         topic = ""
+        quizMode = .custom
+        sources = nil
         sessionActive = false
         sessionEnded = false
         currentQuestion = ""

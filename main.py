@@ -241,14 +241,20 @@ async def _embed(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-async def _retrieve_chunks(query: str, k: int = 5) -> list[str]:
+async def _retrieve_chunks(query: str, k: int = 5, sources: list[str] | None = None) -> list[str]:
     embedding = await _embed(query)
     vec = _fmt_vector(embedding)
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            f"SELECT text FROM course_chunks ORDER BY embedding <=> '{vec}'::vector LIMIT $1",
-            k,
-        )
+        if sources:
+            rows = await conn.fetch(
+                f"SELECT text FROM course_chunks WHERE source = ANY($1) ORDER BY embedding <=> '{vec}'::vector LIMIT $2",
+                sources, k,
+            )
+        else:
+            rows = await conn.fetch(
+                f"SELECT text FROM course_chunks ORDER BY embedding <=> '{vec}'::vector LIMIT $1",
+                k,
+            )
     return [row["text"] for row in rows]
 
 
@@ -256,6 +262,7 @@ async def _retrieve_chunks(query: str, k: int = 5) -> list[str]:
 
 class QuizStartRequest(BaseModel):
     topic: str
+    sources: list[str] | None = None
 
 
 class QuizHistoryItem(BaseModel):
@@ -266,16 +273,33 @@ class QuizHistoryItem(BaseModel):
 class QuizSessionRequest(BaseModel):
     topic: str
     history: list[QuizHistoryItem]
+    sources: list[str] | None = None
 
 
 def _history_text(history: list[QuizHistoryItem]) -> str:
     return "\n".join(f"Q: {h.question}\nA: {h.answer}" for h in history)
 
 
+@app.get("/quiz/lessons")
+async def quiz_lessons():
+    """Return all ingested lesson sources sorted by most recently added."""
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT source, MAX(created_at) AS added_at "
+            "FROM course_chunks GROUP BY source ORDER BY added_at DESC"
+        )
+    return JSONResponse({
+        "lessons": [
+            {"source": row["source"], "added_at": row["added_at"].isoformat()}
+            for row in rows
+        ]
+    })
+
+
 @app.post("/quiz/start")
 async def quiz_start(req: QuizStartRequest):
     """Generate the first question for a quiz session."""
-    chunks = await _retrieve_chunks(req.topic, k=5)
+    chunks = await _retrieve_chunks(req.topic, k=5, sources=req.sources)
     context = "\n\n---\n\n".join(chunks)
 
     completion = await client.chat.completions.create(
@@ -299,7 +323,7 @@ Course material:
 @app.post("/quiz/next")
 async def quiz_next(req: QuizSessionRequest):
     """Generate the next question based on the conversation so far."""
-    chunks = await _retrieve_chunks(req.topic, k=5)
+    chunks = await _retrieve_chunks(req.topic, k=5, sources=req.sources)
     context = "\n\n---\n\n".join(chunks)
 
     completion = await client.chat.completions.create(

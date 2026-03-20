@@ -26,6 +26,15 @@ struct SentenceResult: Decodable {
 }
 
 // Quiz models
+struct LessonInfo: Decodable {
+    let source: String
+    let added_at: String
+}
+
+struct LessonsResult: Decodable {
+    let lessons: [LessonInfo]
+}
+
 struct QuizQuestion: Decodable {
     let question: String
 }
@@ -84,9 +93,22 @@ class APIClient {
         }.resume()
     }
 
+    // Quiz: fetch available lesson sources
+    func fetchLessons(completion: @escaping ([LessonInfo], String?) -> Void) {
+        let url = URL(string: "\(base)/quiz/lessons")!
+        URLSession.shared.dataTask(with: url) { data, _, error in
+            if let err = error { completion([], err.localizedDescription); return }
+            guard let data = data else { completion([], "No data"); return }
+            let result = try? JSONDecoder().decode(LessonsResult.self, from: data)
+            completion(result?.lessons ?? [], result == nil ? "Decode error" : nil)
+        }.resume()
+    }
+
     // Quiz: start session — get first question
-    func startQuiz(topic: String, completion: @escaping (String?, String?) -> Void) {
-        postJSON("\(base)/quiz/start", body: ["topic": topic]) { data, err in
+    func startQuiz(topic: String, sources: [String]? = nil, completion: @escaping (String?, String?) -> Void) {
+        var body: [String: Any] = ["topic": topic]
+        if let sources = sources { body["sources"] = sources }
+        postJSON("\(base)/quiz/start", body: body) { data, err in
             guard let data = data else { completion(nil, err); return }
             let q = (try? JSONDecoder().decode(QuizQuestion.self, from: data))?.question
             completion(q, q == nil ? "Decode error" : nil)
@@ -94,11 +116,12 @@ class APIClient {
     }
 
     // Quiz: get next question given conversation history
-    func nextQuestion(topic: String, history: [HistoryItem], completion: @escaping (String?, String?) -> Void) {
-        let payload: [String: Any] = [
+    func nextQuestion(topic: String, history: [HistoryItem], sources: [String]? = nil, completion: @escaping (String?, String?) -> Void) {
+        var payload: [String: Any] = [
             "topic": topic,
             "history": history.map { ["question": $0.question, "answer": $0.answer] }
         ]
+        if let sources = sources { payload["sources"] = sources }
         postJSON("\(base)/quiz/next", body: payload) { data, err in
             guard let data = data else { completion(nil, err); return }
             let q = (try? JSONDecoder().decode(QuizQuestion.self, from: data))?.question
@@ -107,11 +130,12 @@ class APIClient {
     }
 
     // Quiz: finish session and get evaluation
-    func finishQuiz(topic: String, history: [HistoryItem], completion: @escaping (SessionEvaluation?, String?) -> Void) {
-        let payload: [String: Any] = [
+    func finishQuiz(topic: String, history: [HistoryItem], sources: [String]? = nil, completion: @escaping (SessionEvaluation?, String?) -> Void) {
+        var payload: [String: Any] = [
             "topic": topic,
             "history": history.map { ["question": $0.question, "answer": $0.answer] }
         ]
+        if let sources = sources { payload["sources"] = sources }
         postJSON("\(base)/quiz/finish", body: payload) { data, err in
             guard let data = data else { completion(nil, err); return }
             do {
