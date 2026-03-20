@@ -6,13 +6,6 @@
 //
 import Foundation
 
-// Returned by /transcribe
-struct TranscriptionResult: Decodable {
-    let chinese_transcription: String
-    let words: [String]
-}
-
-// Returned by /translate
 struct WordResult: Decodable, Identifiable {
     var id: String { word }
     let word: String
@@ -21,16 +14,21 @@ struct WordResult: Decodable, Identifiable {
     let from_cache: Bool
 }
 
-struct TranslationResult: Decodable {
+// Returned by /transcribe — words already translated, no sentence yet
+struct TranscriptionResult: Decodable {
     let chinese_transcription: String
-    let sentence_translation: String?
     let words: [WordResult]
+}
+
+// Returned by /translate (Accept) — just the sentence
+struct SentenceResult: Decodable {
+    let sentence_translation: String
 }
 
 class APIClient {
     private let base = "https://chinese-app-a96d.onrender.com"
 
-    // Step 1: upload audio, get back raw transcription + segmented words
+    // Step 1: upload audio → get transcription + per-word translations
     func transcribeAudio(url: URL, completion: @escaping (TranscriptionResult?, String?) -> Void) {
         var request = URLRequest(url: URL(string: "\(base)/transcribe")!)
         request.httpMethod = "POST"
@@ -61,19 +59,24 @@ class APIClient {
         }.resume()
     }
 
-    // Step 2: called on Accept — translate text, write to DB
-    func translateText(_ text: String, completion: @escaping (TranslationResult?, String?) -> Void) {
+    // Step 2 (Accept): send text + words → save to DB, get sentence translation
+    func translateText(_ text: String, words: [WordResult], completion: @escaping (String?, String?) -> Void) {
         var request = URLRequest(url: URL(string: "\(base)/translate")!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: ["text": text])
+
+        let payload: [String: Any] = [
+            "text": text,
+            "words": words.map { ["word": $0.word, "english": $0.english, "pinyin": $0.pinyin] }
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 
         URLSession.shared.dataTask(with: request) { data, _, error in
             if let err = error { completion(nil, err.localizedDescription); return }
             guard let data = data else { completion(nil, "No data received"); return }
             do {
-                let decoded = try JSONDecoder().decode(TranslationResult.self, from: data)
-                completion(decoded, nil)
+                let decoded = try JSONDecoder().decode(SentenceResult.self, from: data)
+                completion(decoded.sentence_translation, nil)
             } catch {
                 completion(nil, "Decode error: \(error.localizedDescription)\nRaw: \(String(data: data, encoding: .utf8) ?? "")")
             }

@@ -126,15 +126,6 @@ struct StrokeOrderView: UIViewRepresentable {
     }
 }
 
-// MARK: - Word Sheet Item
-
-struct WordSheetItem: Identifiable {
-    let word: String
-    let pinyin: String?
-    let english: String?
-    var id: String { word }
-}
-
 // MARK: - Content View
 
 struct ContentView: View {
@@ -142,9 +133,9 @@ struct ContentView: View {
     @State private var isTranscribing = false
     @State private var isTranslating = false
     @State private var transcription: TranscriptionResult?
-    @State private var result: TranslationResult?
+    @State private var sentenceTranslation: String?
     @State private var errorMessage: String?
-    @State private var selectedWord: WordSheetItem?
+    @State private var selectedWord: WordResult?
 
     private let recorder = AudioRecorder()
     private let api = APIClient()
@@ -163,7 +154,7 @@ struct ContentView: View {
                             isRecording = false
                             isTranscribing = true
                             transcription = nil
-                            result = nil
+                            sentenceTranslation = nil
                             errorMessage = nil
                             api.transcribeAudio(url: url) { res, err in
                                 DispatchQueue.main.async {
@@ -176,7 +167,7 @@ struct ContentView: View {
                     } else {
                         errorMessage = nil
                         transcription = nil
-                        result = nil
+                        sentenceTranslation = nil
                         recorder.startRecording()
                         isRecording = true
                     }
@@ -190,75 +181,25 @@ struct ContentView: View {
                     ProgressView("Transcribing...")
                 }
 
-                // ── Transcribed, awaiting Accept ──────────────────────────
-                if let trans = transcription, result == nil {
-                    VStack(alignment: .leading, spacing: 16) {
+                if let trans = transcription {
+                    VStack(alignment: .leading, spacing: 12) {
                         Divider()
 
                         Text(trans.chinese_transcription)
                             .font(.title3)
 
-                        if !trans.words.isEmpty {
-                            Text("Tap a word to see strokes")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            ForEach(trans.words, id: \.self) { word in
-                                Text(word)
-                                    .font(.callout)
-                                    .bold()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        selectedWord = WordSheetItem(word: word, pinyin: nil, english: nil)
-                                    }
-                            }
-                        }
-
-                        Divider()
-
-                        if isTranslating {
-                            ProgressView("Saving...")
-                        } else {
-                            Button("Accept") {
-                                isTranslating = true
-                                api.translateText(trans.chinese_transcription) { res, err in
-                                    DispatchQueue.main.async {
-                                        isTranslating = false
-                                        if let err = err { errorMessage = err }
-                                        result = res
-                                    }
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.green)
-                            .foregroundColor(.white)
-                            .clipShape(Capsule())
-                        }
-                    }
-                    .padding()
-                }
-
-                // ── Accepted: full translation result ─────────────────────
-                if let result = result {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Divider()
-
-                        Text(result.chinese_transcription)
-                            .font(.title3)
-
-                        if let sentence = result.sentence_translation {
+                        // Sentence translation appears here once accepted
+                        if let sentence = sentenceTranslation {
                             Text(sentence)
                                 .foregroundColor(.secondary)
                         }
 
-                        if !result.words.isEmpty {
+                        if !trans.words.isEmpty {
                             Divider()
                             Text("Words — tap to see strokes")
                                 .font(.headline)
 
-                            ForEach(result.words) { wordResult in
+                            ForEach(trans.words) { wordResult in
                                 HStack(spacing: 12) {
                                     Text(wordResult.word)
                                         .frame(minWidth: 48, alignment: .leading)
@@ -276,13 +217,32 @@ struct ContentView: View {
                                 }
                                 .font(.callout)
                                 .contentShape(Rectangle())
-                                .onTapGesture {
-                                    selectedWord = WordSheetItem(
-                                        word: wordResult.word,
-                                        pinyin: wordResult.pinyin,
-                                        english: wordResult.english
-                                    )
+                                .onTapGesture { selectedWord = wordResult }
+                            }
+                        }
+
+                        Divider()
+
+                        // Accept button — hidden once sentence arrives
+                        if sentenceTranslation == nil {
+                            if isTranslating {
+                                ProgressView("Saving...")
+                            } else {
+                                Button("Accept") {
+                                    isTranslating = true
+                                    api.translateText(trans.chinese_transcription, words: trans.words) { sentence, err in
+                                        DispatchQueue.main.async {
+                                            isTranslating = false
+                                            if let err = err { errorMessage = err }
+                                            sentenceTranslation = sentence
+                                        }
+                                    }
                                 }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.green)
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
                             }
                         }
                     }
@@ -298,21 +258,17 @@ struct ContentView: View {
                 Spacer()
             }
         }
-        .sheet(item: $selectedWord) { item in
+        .sheet(item: $selectedWord) { word in
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(item.word)
+                        Text(word.word)
                             .font(.largeTitle)
                             .bold()
-                        if let pinyin = item.pinyin {
-                            Text(pinyin)
-                                .foregroundColor(.secondary)
-                        }
-                        if let english = item.english {
-                            Text(english)
-                                .foregroundColor(.secondary)
-                        }
+                        Text(word.pinyin)
+                            .foregroundColor(.secondary)
+                        Text(word.english)
+                            .foregroundColor(.secondary)
                     }
                     Spacer()
                     Button("Done") { selectedWord = nil }
@@ -322,7 +278,7 @@ struct ContentView: View {
 
                 Divider()
 
-                StrokeOrderView(word: item.word)
+                StrokeOrderView(word: word.word)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }

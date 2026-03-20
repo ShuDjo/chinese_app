@@ -124,7 +124,6 @@ async def _fetch_stroke_cdn(char: str, http: httpx.AsyncClient) -> tuple[str, di
 
 
 async def cache_stroke_data(words: list[str]) -> None:
-    """Background task: fetch and store stroke data for all CJK chars in words."""
     all_chars = list({char for word in words for char in word if is_cjk(char)})
     if not all_chars:
         return
@@ -179,7 +178,7 @@ async def _translate_sentence(text: str) -> str:
 
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
-    """Step 1: transcribe audio and segment into words. No DB writes, no translation."""
+    """Transcribe audio and translate words. No DB writes yet."""
     try:
         suffix = os.path.splitext(file.filename or "")[1] or ".m4a"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -198,39 +197,10 @@ async def transcribe_audio(file: UploadFile = File(...)):
         chinese_text = transcription.text
         words = segment_chinese(chinese_text)
 
-        return JSONResponse({
-            "chinese_transcription": chinese_text,
-            "words": words,
-        })
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Processing error: {e}")
-    finally:
-        try:
-            os.remove(tmp_path)
-        except Exception:
-            pass
-
-
-class TranslateRequest(BaseModel):
-    text: str
-
-
-@app.post("/translate")
-async def translate_text(req: TranslateRequest, background_tasks: BackgroundTasks):
-    """Step 2 (on Accept): translate text, update DB, cache strokes."""
-    try:
-        words = segment_chinese(req.text)
+        # Look up cache and translate missing — read-only, no DB writes yet
         cached = await get_cached_words(words)
         missing = [w for w in words if w not in cached]
-
-        # Translate missing words + full sentence in parallel
-        new_entries, sentence_translation = await asyncio.gather(
-            _translate_words(missing),
-            _translate_sentence(req.text),
-        )
-
-        await store_words(new_entries)
+        new_entries = await _translate_words(missing)
 
         all_words = {**cached, **{e["word"]: e for e in new_entries}}
         word_results = [
@@ -243,14 +213,44 @@ async def translate_text(req: TranslateRequest, background_tasks: BackgroundTask
             for w in words
         ]
 
-        # Cache stroke data in background (only runs when user accepted)
-        background_tasks.add_task(cache_stroke_data, words)
-
         return JSONResponse({
-            "chinese_transcription": req.text,
-            "sentence_translation": sentence_translation,
+            "chinese_transcription": chinese_text,
             "words": word_results,
         })
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing error: {e}")
+    finally:
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+
+
+class WordData(BaseModel):
+    word: str
+    english: str
+    pinyin: str
+
+
+class TranslateRequest(BaseModel):
+    text: str
+    words: list[WordData]
+
+
+@app.post("/translate")
+async def translate_text(req: TranslateRequest, background_tasks: BackgroundTasks):
+    """On Accept: save words to DB, translate sentence, cache strokes."""
+    try:
+        # Save words that weren't already in cache
+        await store_words([w.model_dump() for w in req.words])
+
+        sentence_translation = await _translate_sentence(req.text)
+
+        word_list = [w.word for w in req.words]
+        background_tasks.add_task(cache_stroke_data, word_list)
+
+        return JSONResponse({"sentence_translation": sentence_translation})
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {e}")
