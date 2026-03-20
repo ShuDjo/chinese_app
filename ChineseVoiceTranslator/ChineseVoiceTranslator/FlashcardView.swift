@@ -115,6 +115,7 @@ struct FlashcardView: View {
 
                 TextField("Type your answer...", text: $answer)
                     .font(.system(size: 18))
+                    .foregroundColor(.black)
                     .padding(14)
                     .background(Color.white)
                     .cornerRadius(12)
@@ -123,9 +124,9 @@ struct FlashcardView: View {
                             .stroke(borderColor, lineWidth: 2)
                     )
                     .focused($fieldFocused)
-                    .disabled(result != nil)
+                    .disabled(result == .correct)
                     .submitLabel(.done)
-                    .onSubmit { if result == nil { checkAnswer(card) } }
+                    .onSubmit { checkAnswer(card) }
             }
 
             // Feedback banner
@@ -134,7 +135,15 @@ struct FlashcardView: View {
             }
 
             // Buttons
-            if result == nil {
+            if result == .correct {
+                Button("Next Card") { nextCard() }
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 15)
+                    .background(Theme.jade)
+                    .cornerRadius(14)
+            } else {
                 Button("Submit") { checkAnswer(card) }
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.white)
@@ -143,13 +152,13 @@ struct FlashcardView: View {
                     .background(answer.trimmingCharacters(in: .whitespaces).isEmpty ? Color.gray.opacity(0.4) : Theme.red)
                     .cornerRadius(14)
                     .disabled(answer.trimmingCharacters(in: .whitespaces).isEmpty)
-            } else {
-                Button("Next Card") { nextCard() }
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
+
+                Button("Show Answer") { showAnswer(card) }
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(Theme.red)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(Theme.jade)
+                    .padding(.vertical, 12)
+                    .background(Theme.red.opacity(0.08))
                     .cornerRadius(14)
             }
         }
@@ -208,7 +217,19 @@ struct FlashcardView: View {
             .folding(options: .diacriticInsensitive, locale: .current)
         let matchesPinyin = pinyinBase == answerBase || card.pinyin.lowercased() == trimmed
 
-        result = (matchesEnglish || matchesPinyin) ? .correct : .incorrect
+        if matchesEnglish || matchesPinyin {
+            result = .correct
+        } else {
+            result = .incorrect
+            answer = ""
+            fieldFocused = true
+        }
+    }
+
+    private func showAnswer(_ card: CharacterLookupResult) {
+        fieldFocused = false
+        result = .incorrect
+        answer = ""
     }
 
     private func loadCard() {
