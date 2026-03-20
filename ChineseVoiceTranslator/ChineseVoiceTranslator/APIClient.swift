@@ -25,6 +25,13 @@ struct SentenceResult: Decodable {
     let sentence_translation: String
 }
 
+// Character lookup
+struct CharacterLookupResult: Decodable {
+    let characters: String
+    let pinyin: String
+    let english: String
+}
+
 // Quiz models
 struct LessonInfo: Decodable {
     let source: String
@@ -89,6 +96,23 @@ class APIClient {
                 completion(decoded, nil)
             } catch {
                 completion(nil, "Decode error: \(error.localizedDescription)\nRaw: \(String(data: data, encoding: .utf8) ?? "")")
+            }
+        }.resume()
+    }
+
+    // Character lookup by English or Chinese
+    func lookupCharacter(_ query: String, completion: @escaping (CharacterLookupResult?, String?) -> Void) {
+        var request = URLRequest(url: URL(string: "\(base)/character/lookup")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["query": query])
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let err = error { completion(nil, err.localizedDescription); return }
+            guard let data = data else { completion(nil, "No data"); return }
+            do {
+                completion(try JSONDecoder().decode(CharacterLookupResult.self, from: data), nil)
+            } catch {
+                completion(nil, "Decode error: \(String(data: data, encoding: .utf8) ?? "")")
             }
         }.resume()
     }

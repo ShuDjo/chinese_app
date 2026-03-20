@@ -414,6 +414,58 @@ async def quiz_transcribe(file: UploadFile = File(...)):
             pass
 
 
+class CharacterLookupRequest(BaseModel):
+    query: str
+
+
+@app.post("/character/lookup")
+async def character_lookup(req: CharacterLookupRequest):
+    """Look up Chinese characters and pinyin by English word or Chinese text."""
+    query = req.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Query is empty")
+
+    # Already Chinese — extract CJK chars, get pinyin/english via cache or LLM
+    if any(is_cjk(c) for c in query):
+        chars = "".join(c for c in query if is_cjk(c))
+        cached = await get_cached_words([query])
+        if query in cached:
+            return JSONResponse({
+                "characters": chars,
+                "pinyin": cached[query].get("pinyin", ""),
+                "english": cached[query].get("english", ""),
+            })
+        translated = await _translate_words([query])
+        if translated:
+            t = translated[0]
+            return JSONResponse({
+                "characters": chars,
+                "pinyin": t.get("pinyin", ""),
+                "english": t.get("english", ""),
+            })
+        return JSONResponse({"characters": chars, "pinyin": "", "english": ""})
+
+    # English input — translate to Chinese
+    completion = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a Chinese-English dictionary. Return only valid JSON."},
+            {"role": "user", "content": (
+                f'Translate this English word or phrase to Chinese. '
+                f'Return JSON with keys: "characters" (Chinese characters only), '
+                f'"pinyin" (with tone marks), "english" (the original English).\n\nEnglish: {query}'
+            )},
+        ],
+        response_format={"type": "json_object"},
+    )
+    data = json.loads(completion.choices[0].message.content)
+    return JSONResponse({
+        "characters": data.get("characters", ""),
+        "pinyin": data.get("pinyin", ""),
+        "english": data.get("english", query),
+    })
+
+
 class WordData(BaseModel):
     word: str
     english: str
