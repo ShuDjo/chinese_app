@@ -12,6 +12,7 @@ import jieba
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from openai import AsyncOpenAI
+from pydantic import BaseModel
 
 app = FastAPI(title="Chinese Voice Translator")
 client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -137,7 +138,7 @@ async def cache_stroke_data(words: list[str]) -> None:
     await store_strokes(new_entries)
 
 
-# ── LLM calls ─────────────────────────────────────────────────────────────────
+# ── LLM helpers ───────────────────────────────────────────────────────────────
 
 def segment_chinese(text: str) -> list[str]:
     return [w.strip() for w in jieba.cut(text) if w.strip()]
@@ -174,10 +175,11 @@ async def _translate_sentence(text: str) -> str:
     return json.loads(completion.choices[0].message.content).get("translation", "")
 
 
-# ── endpoint ──────────────────────────────────────────────────────────────────
+# ── endpoints ─────────────────────────────────────────────────────────────────
 
-@app.post("/translate")
-async def translate_audio(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+@app.post("/transcribe")
+async def transcribe_audio(file: UploadFile = File(...)):
+    """Step 1: transcribe audio and segment into words. No DB writes, no translation."""
     try:
         suffix = os.path.splitext(file.filename or "")[1] or ".m4a"
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -187,7 +189,6 @@ async def translate_audio(background_tasks: BackgroundTasks, file: UploadFile = 
         raise HTTPException(status_code=500, detail=f"Error saving file: {e}")
 
     try:
-        # 1. Transcribe
         with open(tmp_path, "rb") as audio_file:
             transcription = await client.audio.transcriptions.create(
                 model="gpt-4o-mini-transcribe",
@@ -195,22 +196,42 @@ async def translate_audio(background_tasks: BackgroundTasks, file: UploadFile = 
                 language="zh",
             )
         chinese_text = transcription.text
-
-        # 2. Segment + DB cache lookup
         words = segment_chinese(chinese_text)
+
+        return JSONResponse({
+            "chinese_transcription": chinese_text,
+            "words": words,
+        })
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing error: {e}")
+    finally:
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+
+
+class TranslateRequest(BaseModel):
+    text: str
+
+
+@app.post("/translate")
+async def translate_text(req: TranslateRequest, background_tasks: BackgroundTasks):
+    """Step 2 (on Accept): translate text, update DB, cache strokes."""
+    try:
+        words = segment_chinese(req.text)
         cached = await get_cached_words(words)
         missing = [w for w in words if w not in cached]
 
-        # 3. Translate missing words + full sentence IN PARALLEL
+        # Translate missing words + full sentence in parallel
         new_entries, sentence_translation = await asyncio.gather(
             _translate_words(missing),
-            _translate_sentence(chinese_text),
+            _translate_sentence(req.text),
         )
 
-        # 4. Persist new words
         await store_words(new_entries)
 
-        # 5. Assemble per-word result
         all_words = {**cached, **{e["word"]: e for e in new_entries}}
         word_results = [
             {
@@ -222,19 +243,14 @@ async def translate_audio(background_tasks: BackgroundTasks, file: UploadFile = 
             for w in words
         ]
 
-        # 6. Cache stroke data in the background (non-blocking)
+        # Cache stroke data in background (only runs when user accepted)
         background_tasks.add_task(cache_stroke_data, words)
 
         return JSONResponse({
-            "chinese_transcription": chinese_text,
+            "chinese_transcription": req.text,
             "sentence_translation": sentence_translation,
             "words": word_results,
         })
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {e}")
-    finally:
-        try:
-            os.remove(tmp_path)
-        except Exception:
-            pass
