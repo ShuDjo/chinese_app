@@ -182,7 +182,7 @@ struct FlashcardView: View {
                     Text("Pinyin: \(card.pinyin)")
                         .font(.system(size: 15))
                 }
-                .foregroundColor(.secondary)
+                .foregroundColor(.black)
                 .padding(.top, 2)
             }
         }
