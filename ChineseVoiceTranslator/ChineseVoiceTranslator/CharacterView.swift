@@ -164,6 +164,16 @@ struct CharacterView: View {
             StrokeOrderView(word: result.characters)
                 .frame(maxWidth: .infinity)
                 .frame(height: 260)
+
+            if !result.english.isEmpty {
+                Divider()
+                    .padding(.horizontal, 16)
+                Text(result.english)
+                    .font(.title3)
+                    .fontWeight(.medium)
+                    .foregroundColor(Color.black.opacity(0.65))
+                    .padding(.vertical, 14)
+            }
         }
         .background(Color.white)
         .cornerRadius(16)
