@@ -89,12 +89,12 @@ struct CharacterView: View {
 
     private var searchCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("English or Chinese", systemImage: "magnifyingglass")
+            Label("English, Pinyin, or Chinese", systemImage: "magnifyingglass")
                 .font(.headline)
                 .foregroundColor(Theme.red)
 
             HStack(spacing: 10) {
-                TextField("e.g.  hello  or  你好", text: $query)
+                TextField("e.g.  hello  •  ni hao  •  你好", text: $query)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                     .background(Color(UIColor.secondarySystemBackground))
@@ -119,7 +119,7 @@ struct CharacterView: View {
                 .disabled(query.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
             }
 
-            Text("Type any English word or Chinese character to see how it's written stroke by stroke.")
+            Text("Works with any English word, pinyin (e.g. ni hao), or Chinese characters.")
                 .font(.caption)
                 .foregroundColor(Color.black.opacity(0.4))
         }

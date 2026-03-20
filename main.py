@@ -445,15 +445,20 @@ async def character_lookup(req: CharacterLookupRequest):
             })
         return JSONResponse({"characters": chars, "pinyin": "", "english": ""})
 
-    # English input — translate to Chinese
+    # English or pinyin input — use LLM to find Chinese characters
     completion = await client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": "You are a Chinese-English dictionary. Return only valid JSON."},
             {"role": "user", "content": (
-                f'Translate this English word or phrase to Chinese. '
-                f'Return JSON with keys: "characters" (Chinese characters only), '
-                f'"pinyin" (with tone marks), "english" (the original English).\n\nEnglish: {query}'
+                f'The user typed: "{query}"\n\n'
+                f'This could be an English word/phrase, pinyin (e.g. "ni hao", "xièxiè"), '
+                f'or a romanization. Find the corresponding Chinese characters.\n\n'
+                f'Return JSON with keys:\n'
+                f'- "characters": the Chinese characters (hanzi only)\n'
+                f'- "pinyin": pinyin with tone marks (e.g. nǐ hǎo)\n'
+                f'- "english": the English meaning\n\n'
+                f'Only return the most common/natural match. Never leave "characters" empty.'
             )},
         ],
         response_format={"type": "json_object"},
