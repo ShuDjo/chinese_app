@@ -11,6 +11,7 @@ struct FlashcardView: View {
     @State private var card: CharacterLookupResult? = nil
     @State private var answer = ""
     @State private var result: AnswerResult? = nil
+    @State private var answerRevealed = false
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
     @FocusState private var fieldFocused: Bool
@@ -135,7 +136,7 @@ struct FlashcardView: View {
             }
 
             // Buttons
-            if result == .correct {
+            if result == .correct || answerRevealed {
                 Button("Next Card") { nextCard() }
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.white)
@@ -229,6 +230,7 @@ struct FlashcardView: View {
     private func showAnswer(_ card: CharacterLookupResult) {
         fieldFocused = false
         result = .incorrect
+        answerRevealed = true
         answer = ""
     }
 
@@ -237,6 +239,7 @@ struct FlashcardView: View {
         errorMessage = nil
         card = nil
         result = nil
+        answerRevealed = false
         answer = ""
         api.fetchRandomFlashcard { fetched, err in
             DispatchQueue.main.async {
