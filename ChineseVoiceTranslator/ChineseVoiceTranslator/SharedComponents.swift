@@ -131,22 +131,22 @@ struct WordRowView: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 14) {
-                // Chinese character + pinyin
-                VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 12) {
+                // Chinese character + pinyin side by side
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(word.word)
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(Color(UIColor.label))
                     Text(word.pinyin)
-                        .font(.caption)
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(Theme.red)
                 }
-                .frame(minWidth: 60, alignment: .leading)
+                .frame(minWidth: 90, alignment: .leading)
 
                 // English
                 Text(word.english)
                     .font(.callout)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(UIColor.label).opacity(0.75))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(2)
 
@@ -159,7 +159,7 @@ struct WordRowView: View {
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color.secondary.opacity(0.5))
+                    .foregroundColor(Color(UIColor.label).opacity(0.3))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
