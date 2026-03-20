@@ -145,7 +145,8 @@ def segment_chinese(text: str) -> list[str]:
     return [w.strip() for w in jieba.cut(text) if w.strip()]
 
 
-def translate_missing_words(words: list[str]) -> list[dict]:
+def _llm_translate_words(words: list[str]) -> list[dict]:
+    """Call LLM to translate a batch of Chinese words."""
     if not words:
         return []
     prompt = f"""Translate each Chinese word below.
@@ -166,7 +167,8 @@ Words: {json.dumps(words, ensure_ascii=False)}"""
     return data.get("words", [])
 
 
-def translate_sentence(chinese_text: str) -> str:
+def _llm_translate_sentence(chinese_text: str) -> str:
+    """Call LLM to translate a full Chinese sentence to English."""
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
@@ -176,6 +178,210 @@ def translate_sentence(chinese_text: str) -> str:
         response_format={"type": "json_object"},
     )
     return json.loads(completion.choices[0].message.content).get("translation", "")
+
+
+# ── agentic translation pipeline ──────────────────────────────────────────────
+
+AGENT_SYSTEM_PROMPT = """\
+You are a Chinese language processing agent. You have received a transcribed Chinese sentence and its segmented words.
+
+Your job is to assemble a complete translation result by calling the available tools. Follow this plan:
+
+1. Call `lookup_words` with all segmented words to find which ones are already cached.
+2. For words NOT in the cache, call `translate_words` to get their English and pinyin, then call `save_words` to persist them.
+3. Call `translate_sentence` to produce a natural English translation of the full sentence.
+4. Call `return_result` with the sentence translation and a per-word list (mark each word from_cache=true if it came from the cache, false if it was freshly translated).
+
+Steps 2 and 3 are independent — you may call them in any order or together. Always finish by calling `return_result`.\
+"""
+
+AGENT_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "lookup_words",
+            "description": "Look up Chinese words in the persistent cache. Returns cached translations and a list of missing words.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "words": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Chinese words to look up",
+                    }
+                },
+                "required": ["words"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "translate_words",
+            "description": "Translate a list of Chinese words to English with pinyin tone marks. Use for words not found in cache.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "words": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Chinese words to translate",
+                    }
+                },
+                "required": ["words"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "save_words",
+            "description": "Persist newly translated words to the cache database.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "entries": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "word":    {"type": "string"},
+                                "english": {"type": "string"},
+                                "pinyin":  {"type": "string"},
+                            },
+                            "required": ["word", "english", "pinyin"],
+                        },
+                        "description": "Word translation entries to save",
+                    }
+                },
+                "required": ["entries"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "translate_sentence",
+            "description": "Translate the full Chinese sentence into natural English.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "The Chinese sentence to translate",
+                    }
+                },
+                "required": ["text"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "return_result",
+            "description": "Return the completed translation result. Call this once you have the sentence translation and all per-word data.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sentence_translation": {
+                        "type": "string",
+                        "description": "Natural English translation of the full sentence",
+                    },
+                    "words": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "word":       {"type": "string"},
+                                "english":    {"type": "string"},
+                                "pinyin":     {"type": "string"},
+                                "from_cache": {"type": "boolean"},
+                            },
+                            "required": ["word", "english", "pinyin", "from_cache"],
+                        },
+                        "description": "Per-word breakdown with translations and cache status",
+                    },
+                },
+                "required": ["sentence_translation", "words"],
+            },
+        },
+    },
+]
+
+
+def run_translation_agent(chinese_text: str, words: list[str]) -> dict:
+    """Run the agentic translation pipeline. Returns the result dict from return_result."""
+    messages = [
+        {"role": "system", "content": AGENT_SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                f"Chinese sentence: {chinese_text}\n"
+                f"Segmented words: {json.dumps(words, ensure_ascii=False)}"
+            ),
+        },
+    ]
+
+    for _ in range(10):  # safety limit on agent turns
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            tools=AGENT_TOOLS,
+            tool_choice="auto",
+        )
+
+        msg = response.choices[0].message
+        messages.append(msg)
+
+        if not msg.tool_calls:
+            break  # agent stopped without return_result — shouldn't happen
+
+        tool_results = []
+        final_result = None
+
+        for tc in msg.tool_calls:
+            args = json.loads(tc.function.arguments)
+            name = tc.function.name
+
+            if name == "lookup_words":
+                cached = get_cached_words(args["words"])
+                missing = [w for w in args["words"] if w not in cached]
+                content = json.dumps(
+                    {"cached": cached, "missing": missing},
+                    ensure_ascii=False,
+                )
+
+            elif name == "translate_words":
+                translations = _llm_translate_words(args["words"])
+                content = json.dumps(translations, ensure_ascii=False)
+
+            elif name == "save_words":
+                store_words(args["entries"])
+                content = json.dumps({"saved": len(args["entries"])})
+
+            elif name == "translate_sentence":
+                translation = _llm_translate_sentence(args["text"])
+                content = json.dumps({"translation": translation})
+
+            elif name == "return_result":
+                final_result = args
+                content = json.dumps({"status": "done"})
+
+            else:
+                content = json.dumps({"error": f"unknown tool: {name}"})
+
+            tool_results.append({
+                "tool_call_id": tc.id,
+                "role": "tool",
+                "content": content,
+            })
+
+        messages.extend(tool_results)
+
+        if final_result is not None:
+            return final_result
+
+    raise RuntimeError("Agent did not produce a result")
 
 
 init_db()
@@ -194,7 +400,7 @@ async def translate_audio(background_tasks: BackgroundTasks, file: UploadFile = 
         raise HTTPException(status_code=500, detail=f"Error saving file: {e}")
 
     try:
-        # 1. Transcribe
+        # 1. Transcribe (deterministic — requires file I/O)
         with open(tmp_path, "rb") as audio_file:
             transcription = client.audio.transcriptions.create(
                 model="gpt-4o-mini-transcribe",
@@ -203,40 +409,19 @@ async def translate_audio(background_tasks: BackgroundTasks, file: UploadFile = 
             )
         chinese_text = transcription.text
 
-        # 2. Segment into words
+        # 2. Segment into words (deterministic)
         words = segment_chinese(chinese_text)
 
-        # 3. Batch DB lookup
-        cached = get_cached_words(words)
-        missing = [w for w in words if w not in cached]
+        # 3. Run agentic translation pipeline
+        result = run_translation_agent(chinese_text, words)
 
-        # 4. Translate missing words, store in DB
-        new_entries = translate_missing_words(missing)
-        if new_entries:
-            store_words(new_entries)
-
-        # 5. Merge all word data
-        all_words = {**cached, **{e["word"]: e for e in new_entries}}
-        word_results = [
-            {
-                "word": w,
-                "english": all_words.get(w, {}).get("english", ""),
-                "pinyin": all_words.get(w, {}).get("pinyin", ""),
-                "from_cache": w in cached,
-            }
-            for w in words
-        ]
-
-        # 6. Full sentence translation
-        sentence_translation = translate_sentence(chinese_text)
-
-        # 7. Cache stroke data in the background (non-blocking)
+        # 4. Cache stroke data in the background (non-blocking)
         background_tasks.add_task(cache_stroke_data, words)
 
         return JSONResponse({
             "chinese_transcription": chinese_text,
-            "sentence_translation": sentence_translation,
-            "words": word_results,
+            "sentence_translation": result.get("sentence_translation", ""),
+            "words": result.get("words", []),
         })
 
     except Exception as e:
