@@ -28,14 +28,18 @@ struct SentenceResult: Decodable {
 // Quiz models
 struct QuizQuestion: Decodable {
     let question: String
-    let type: String
 }
 
-struct QuizEvaluation: Decodable {
-    let score: Int
-    let correct: Bool
-    let feedback: String
-    let correct_answer: String
+struct SessionEvaluation: Decodable {
+    let overall_score: Int
+    let summary: String
+    let strengths: [String]
+    let improvements: [String]
+}
+
+struct HistoryItem {
+    let question: String
+    let answer: String
 }
 
 class APIClient {
@@ -72,41 +76,80 @@ class APIClient {
         }.resume()
     }
 
-    // Quiz: get a question based on optional topic
-    func fetchQuestion(topic: String?, completion: @escaping (QuizQuestion?, String?) -> Void) {
-        var request = URLRequest(url: URL(string: "\(base)/quiz/question")!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        var payload: [String: Any] = [:]
-        if let topic = topic, !topic.isEmpty { payload["topic"] = topic }
-        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+    // Quiz: start session — get first question
+    func startQuiz(topic: String, completion: @escaping (String?, String?) -> Void) {
+        postJSON("\(base)/quiz/start", body: ["topic": topic]) { data, err in
+            guard let data = data else { completion(nil, err); return }
+            let q = (try? JSONDecoder().decode(QuizQuestion.self, from: data))?.question
+            completion(q, q == nil ? "Decode error" : nil)
+        }
+    }
 
+    // Quiz: get next question given conversation history
+    func nextQuestion(topic: String, history: [HistoryItem], completion: @escaping (String?, String?) -> Void) {
+        let payload: [String: Any] = [
+            "topic": topic,
+            "history": history.map { ["question": $0.question, "answer": $0.answer] }
+        ]
+        postJSON("\(base)/quiz/next", body: payload) { data, err in
+            guard let data = data else { completion(nil, err); return }
+            let q = (try? JSONDecoder().decode(QuizQuestion.self, from: data))?.question
+            completion(q, q == nil ? "Decode error" : nil)
+        }
+    }
+
+    // Quiz: finish session and get evaluation
+    func finishQuiz(topic: String, history: [HistoryItem], completion: @escaping (SessionEvaluation?, String?) -> Void) {
+        let payload: [String: Any] = [
+            "topic": topic,
+            "history": history.map { ["question": $0.question, "answer": $0.answer] }
+        ]
+        postJSON("\(base)/quiz/finish", body: payload) { data, err in
+            guard let data = data else { completion(nil, err); return }
+            do {
+                completion(try JSONDecoder().decode(SessionEvaluation.self, from: data), nil)
+            } catch {
+                completion(nil, "Decode error: \(String(data: data, encoding: .utf8) ?? "")")
+            }
+        }
+    }
+
+    // Quiz: transcribe answer audio (auto language detection)
+    func transcribeAnswer(url: URL, completion: @escaping (String?, String?) -> Void) {
+        var request = URLRequest(url: URL(string: "\(base)/quiz/transcribe")!)
+        request.httpMethod = "POST"
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        var body = Data()
+        let fileData = try? Data(contentsOf: url)
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"answer.m4a\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData ?? Data())
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
         URLSession.shared.dataTask(with: request) { data, _, error in
             if let err = error { completion(nil, err.localizedDescription); return }
             guard let data = data else { completion(nil, "No data"); return }
-            do {
-                completion(try JSONDecoder().decode(QuizQuestion.self, from: data), nil)
-            } catch {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let text = json["text"] as? String {
+                completion(text, nil)
+            } else {
                 completion(nil, "Decode error: \(String(data: data, encoding: .utf8) ?? "")")
             }
         }.resume()
     }
 
-    // Quiz: evaluate the student's answer
-    func evaluateAnswer(question: String, answer: String, completion: @escaping (QuizEvaluation?, String?) -> Void) {
-        var request = URLRequest(url: URL(string: "\(base)/quiz/evaluate")!)
+    // Shared helper for JSON POST requests
+    private func postJSON(_ urlString: String, body: [String: Any], completion: @escaping (Data?, String?) -> Void) {
+        var request = URLRequest(url: URL(string: urlString)!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: ["question": question, "answer": answer])
-
-        URLSession.shared.dataTask(with: request) { data, _, error in
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let err = error { completion(nil, err.localizedDescription); return }
             guard let data = data else { completion(nil, "No data"); return }
-            do {
-                completion(try JSONDecoder().decode(QuizEvaluation.self, from: data), nil)
-            } catch {
-                completion(nil, "Decode error: \(String(data: data, encoding: .utf8) ?? "")")
-            }
+            completion(data, nil)
         }.resume()
     }
 
