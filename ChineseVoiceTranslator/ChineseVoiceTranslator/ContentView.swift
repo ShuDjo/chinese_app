@@ -225,8 +225,8 @@ struct ContentView: View {
                 .offset(x: 60, y: 10)
 
             VStack(spacing: 4) {
-                Text("Chinese Voice Translator")
-                    .font(.system(size: 22, weight: .bold))
+                Text("XuéBàn")
+                    .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)
                 Text("Speak. Transcribe. Learn.")
                     .font(.subheadline)

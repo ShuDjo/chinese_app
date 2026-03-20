@@ -398,6 +398,7 @@
 				DEVELOPMENT_TEAM = LU67PGVN84;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "XuéBàn";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app needs microphone access to record your speech for translation.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -431,6 +432,7 @@
 				DEVELOPMENT_TEAM = LU67PGVN84;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "XuéBàn";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app needs microphone access to record your speech for translation.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
