@@ -40,6 +40,7 @@ struct QuizView: View {
     @State private var isLoadingQuestion = false
     @State private var isTranscribing = false
     @State private var isEvaluating = false
+    @State private var sessionEnded = false
 
     // Results
     @State private var evaluation: SessionEvaluation?
@@ -271,6 +272,43 @@ struct QuizView: View {
                 .background(Color.orange.opacity(0.08))
                 .cornerRadius(12)
                 .padding(.horizontal)
+
+                // Per-exchange breakdown
+                let mistakes = eval.exchanges.filter { $0.mistake != nil }
+                if !mistakes.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Mistakes").font(.headline).foregroundColor(.red)
+                        ForEach(mistakes.indices, id: \.self) { i in
+                            let ex = mistakes[i]
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text("Q: \(ex.question)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                    Text("\(ex.score)/100")
+                                        .font(.caption)
+                                        .bold()
+                                        .foregroundColor(scoreColor(ex.score))
+                                }
+                                Text("Your answer: \(ex.answer)")
+                                    .font(.caption)
+                                    .italic()
+                                    .foregroundColor(.secondary)
+                                if let mistake = ex.mistake {
+                                    Label(mistake, systemImage: "exclamationmark.circle.fill")
+                                        .font(.callout)
+                                        .foregroundColor(.red)
+                                }
+                            }
+                            .padding()
+                            .background(Color.red.opacity(0.06))
+                            .cornerRadius(10)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                }
             }
 
             Button("New Session") { resetSession() }
@@ -335,6 +373,7 @@ struct QuizView: View {
         api.nextQuestion(topic: topic, history: history) { question, err in
             DispatchQueue.main.async {
                 isLoadingQuestion = false
+                guard !sessionEnded else { return }
                 if let err = err { errorMessage = err; return }
                 if let q = question {
                     currentQuestion = q
@@ -345,17 +384,19 @@ struct QuizView: View {
     }
 
     func endSession() {
+        sessionEnded = true
         if isRecording {
             _ = recorder.stopRecording()
             isRecording = false
         }
         speaker.stop()
+        isLoadingQuestion = false
+        currentQuestion = ""
         guard !history.isEmpty else {
             sessionActive = false
             return
         }
         isEvaluating = true
-        currentQuestion = ""
         api.finishQuiz(topic: topic, history: history) { eval, err in
             DispatchQueue.main.async {
                 isEvaluating = false
@@ -368,6 +409,7 @@ struct QuizView: View {
     func resetSession() {
         topic = ""
         sessionActive = false
+        sessionEnded = false
         currentQuestion = ""
         history = []
         pendingAnswer = ""

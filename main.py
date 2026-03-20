@@ -343,7 +343,12 @@ Return JSON with:
 - "overall_score": integer 0-100
 - "summary": 2-3 sentence overall assessment
 - "strengths": array of 2-3 specific things done well
-- "improvements": array of 2-3 specific areas to work on"""},
+- "improvements": array of 2-3 specific areas to work on
+- "exchanges": array of objects, one per Q&A pair, each with:
+  - "question": the question asked
+  - "answer": the student's answer
+  - "score": integer 0-100 for that specific answer
+  - "mistake": null if the answer was good, otherwise a specific description of what was wrong (e.g. wrong tone, wrong measure word, missing grammar point)"""},
         ],
         response_format={"type": "json_object"},
     )
@@ -353,6 +358,7 @@ Return JSON with:
         "summary": data.get("summary", ""),
         "strengths": data.get("strengths", []),
         "improvements": data.get("improvements", []),
+        "exchanges": data.get("exchanges", []),
     })
 
 

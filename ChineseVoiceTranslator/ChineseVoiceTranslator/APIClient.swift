@@ -30,11 +30,19 @@ struct QuizQuestion: Decodable {
     let question: String
 }
 
+struct ExchangeFeedback: Decodable {
+    let question: String
+    let answer: String
+    let score: Int
+    let mistake: String?
+}
+
 struct SessionEvaluation: Decodable {
     let overall_score: Int
     let summary: String
     let strengths: [String]
     let improvements: [String]
+    let exchanges: [ExchangeFeedback]
 }
 
 struct HistoryItem {
