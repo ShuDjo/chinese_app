@@ -141,146 +141,284 @@ struct ContentView: View {
     private let api = APIClient()
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                Text("Chinese Voice Translator")
-                    .font(.title2)
-                    .padding()
+        ZStack(alignment: .top) {
+            Theme.warmBg.ignoresSafeArea()
 
-                // Record button
-                Button(isRecording ? "Stop Recording" : "Start Recording") {
-                    if isRecording {
-                        if let url = recorder.stopRecording() {
-                            isRecording = false
-                            isTranscribing = true
-                            transcription = nil
-                            sentenceTranslation = nil
-                            errorMessage = nil
-                            api.transcribeAudio(url: url) { res, err in
-                                DispatchQueue.main.async {
-                                    isTranscribing = false
-                                    if let err = err { errorMessage = err }
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Header
+                    headerView
+                        .ignoresSafeArea(edges: .top)
+
+                    // Main content
+                    VStack(spacing: 20) {
+                        recordButtonSection
+                            .padding(.top, 32)
+
+                        if isTranscribing {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                Text("Transcribing…")
+                                    .font(.callout)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 8)
+                            .transition(.opacity)
+                        }
+
+                        if let trans = transcription {
+                            resultsCard(trans: trans)
+                                .padding(.horizontal, 16)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                                    removal: .opacity
+                                ))
+                        }
+
+                        if let error = errorMessage {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.red)
+                                Text(error)
+                                    .font(.callout)
+                                    .foregroundColor(.red)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.red.opacity(0.08))
+                            .cornerRadius(12)
+                            .padding(.horizontal, 16)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .opacity
+                            ))
+                        }
+
+                        Spacer(minLength: 40)
+                    }
+                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: transcription == nil)
+                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isTranscribing)
+                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: errorMessage)
+                }
+            }
+            .scrollIndicators(.hidden)
+        }
+        .sheet(item: $selectedWord) { word in
+            strokeSheet(word: word)
+        }
+    }
+
+    // MARK: - Header
+
+    private var headerView: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Theme.red, Theme.red.opacity(0.7)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            // Decorative watermark
+            Text("中文")
+                .font(.system(size: 110, weight: .black))
+                .foregroundColor(Color.white.opacity(0.08))
+                .offset(x: 60, y: 10)
+
+            VStack(spacing: 4) {
+                Text("Chinese Voice Translator")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(.white)
+                Text("Speak. Transcribe. Learn.")
+                    .font(.subheadline)
+                    .foregroundColor(Color.white.opacity(0.75))
+            }
+            .padding(.top, 12)
+            .padding(.bottom, 20)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 130)
+    }
+
+    // MARK: - Record Button Section
+
+    private var recordButtonSection: some View {
+        VStack(spacing: 16) {
+            PulsingRecordButton(
+                isRecording: isRecording,
+                isLoading: isTranscribing
+            ) {
+                if isRecording {
+                    if let url = recorder.stopRecording() {
+                        isRecording = false
+                        isTranscribing = true
+                        transcription = nil
+                        sentenceTranslation = nil
+                        errorMessage = nil
+                        api.transcribeAudio(url: url) { res, err in
+                            DispatchQueue.main.async {
+                                isTranscribing = false
+                                if let err = err { errorMessage = err }
+                                withAnimation {
                                     transcription = res
                                 }
                             }
                         }
-                    } else {
-                        errorMessage = nil
-                        transcription = nil
-                        sentenceTranslation = nil
-                        recorder.startRecording()
-                        isRecording = true
                     }
+                } else {
+                    errorMessage = nil
+                    withAnimation { transcription = nil }
+                    sentenceTranslation = nil
+                    recorder.startRecording()
+                    isRecording = true
                 }
-                .padding()
-                .background(isRecording ? Color.red : Color.blue)
-                .foregroundColor(.white)
-                .clipShape(Capsule())
+            }
 
-                if isTranscribing {
-                    ProgressView("Transcribing...")
+            Text(isTranscribing ? "Transcribing…" : isRecording ? "Tap to stop" : "Tap to record")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    // MARK: - Results Card
+
+    @ViewBuilder
+    private func resultsCard(trans: TranscriptionResult) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Chinese sentence + English translation
+            VStack(alignment: .leading, spacing: 8) {
+                Text(trans.chinese_transcription)
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let sentence = sentenceTranslation {
+                    Text(sentence)
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .opacity
+                        ))
                 }
+            }
+            .padding(16)
 
-                if let trans = transcription {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Divider()
+            if !trans.words.isEmpty {
+                Divider().padding(.horizontal, 16)
 
-                        Text(trans.chinese_transcription)
-                            .font(.title3)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Words — tap to see strokes")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
 
-                        // Sentence translation appears here once accepted
-                        if let sentence = sentenceTranslation {
-                            Text(sentence)
+                    VStack(spacing: 8) {
+                        ForEach(trans.words) { wordResult in
+                            WordRowView(word: wordResult) {
+                                selectedWord = wordResult
+                            }
+                            .padding(.horizontal, 16)
+                        }
+                    }
+                    .padding(.bottom, 4)
+                }
+            }
+
+            // Accept / Saving button
+            if sentenceTranslation == nil {
+                Divider().padding(.horizontal, 16)
+                VStack {
+                    if isTranslating {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text("Saving…")
+                                .font(.callout)
                                 .foregroundColor(.secondary)
                         }
-
-                        if !trans.words.isEmpty {
-                            Divider()
-                            Text("Words — tap to see strokes")
-                                .font(.headline)
-
-                            ForEach(trans.words) { wordResult in
-                                HStack(spacing: 12) {
-                                    Text(wordResult.word)
-                                        .frame(minWidth: 48, alignment: .leading)
-                                        .bold()
-                                    Text(wordResult.pinyin)
-                                        .foregroundColor(.secondary)
-                                        .frame(minWidth: 64, alignment: .leading)
-                                    Text(wordResult.english)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    if wordResult.from_cache {
-                                        Circle()
-                                            .fill(Color.green)
-                                            .frame(width: 8, height: 8)
+                        .padding(.vertical, 14)
+                    } else {
+                        Button {
+                            isTranslating = true
+                            api.translateText(trans.chinese_transcription, words: trans.words) { sentence, err in
+                                DispatchQueue.main.async {
+                                    isTranslating = false
+                                    if let err = err { errorMessage = err }
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        sentenceTranslation = sentence
                                     }
                                 }
-                                .font(.callout)
-                                .contentShape(Rectangle())
-                                .onTapGesture { selectedWord = wordResult }
                             }
-                        }
-
-                        Divider()
-
-                        // Accept button — hidden once sentence arrives
-                        if sentenceTranslation == nil {
-                            if isTranslating {
-                                ProgressView("Saving...")
-                            } else {
-                                Button("Accept") {
-                                    isTranslating = true
-                                    api.translateText(trans.chinese_transcription, words: trans.words) { sentence, err in
-                                        DispatchQueue.main.async {
-                                            isTranslating = false
-                                            if let err = err { errorMessage = err }
-                                            sentenceTranslation = sentence
-                                        }
-                                    }
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.green)
-                                .foregroundColor(.white)
-                                .clipShape(Capsule())
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                Text("Accept & Save")
+                                    .fontWeight(.semibold)
                             }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(
+                                LinearGradient(
+                                    colors: [Theme.jade, Color(red: 0.10, green: 0.42, blue: 0.26)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                     }
-                    .padding()
                 }
-
-                if let error = errorMessage {
-                    Text("Error: \(error)")
-                        .foregroundColor(.red)
-                        .padding()
-                }
-
-                Spacer()
             }
         }
-        .sheet(item: $selectedWord) { word in
-            VStack(spacing: 0) {
+        .background(Color.white)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+    }
+
+    // MARK: - Stroke Sheet
+
+    @ViewBuilder
+    private func strokeSheet(word: WordResult) -> some View {
+        VStack(spacing: 0) {
+            // Sheet header
+            ZStack {
+                LinearGradient(
+                    colors: [Theme.red, Theme.red.opacity(0.7)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(word.word)
                             .font(.largeTitle)
                             .bold()
+                            .foregroundColor(.white)
                         Text(word.pinyin)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color.white.opacity(0.8))
                         Text(word.english)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(Color.white.opacity(0.7))
                     }
                     Spacer()
-                    Button("Done") { selectedWord = nil }
-                        .padding(.leading)
+                    Button {
+                        selectedWord = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(Color.white.opacity(0.8))
+                    }
                 }
-                .padding()
-
-                Divider()
-
-                StrokeOrderView(word: word.word)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
             }
+            .frame(height: 110)
+
+            StrokeOrderView(word: word.word)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .ignoresSafeArea(edges: .top)
     }
 }

@@ -31,6 +31,7 @@ struct ChineseVoiceTranslatorApp: App {
                 QuizView()
                     .tabItem { Label("Quiz", systemImage: "list.bullet.clipboard") }
             }
+            .tint(Theme.red)
         }
         .modelContainer(sharedModelContainer)
     }
