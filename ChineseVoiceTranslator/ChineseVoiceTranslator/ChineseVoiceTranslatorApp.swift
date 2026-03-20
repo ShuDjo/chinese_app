@@ -25,7 +25,12 @@ struct ChineseVoiceTranslatorApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TabView {
+                ContentView()
+                    .tabItem { Label("Translate", systemImage: "mic.fill") }
+                QuizView()
+                    .tabItem { Label("Quiz", systemImage: "list.bullet.clipboard") }
+            }
         }
         .modelContainer(sharedModelContainer)
     }

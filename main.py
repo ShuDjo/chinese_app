@@ -227,6 +227,103 @@ async def transcribe_audio(file: UploadFile = File(...)):
             pass
 
 
+# ── RAG helpers ───────────────────────────────────────────────────────────────
+
+def _fmt_vector(embedding: list[float]) -> str:
+    return "[" + ",".join(f"{x:.8f}" for x in embedding) + "]"
+
+
+async def _embed(text: str) -> list[float]:
+    response = await client.embeddings.create(
+        model="text-embedding-3-small",
+        input=text,
+    )
+    return response.data[0].embedding
+
+
+async def _retrieve_chunks(query: str, k: int = 5) -> list[str]:
+    embedding = await _embed(query)
+    vec = _fmt_vector(embedding)
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"SELECT text FROM course_chunks ORDER BY embedding <=> '{vec}'::vector LIMIT $1",
+            k,
+        )
+    return [row["text"] for row in rows]
+
+
+# ── quiz endpoints ─────────────────────────────────────────────────────────────
+
+class QuizRequest(BaseModel):
+    topic: str | None = None
+
+
+@app.post("/quiz/question")
+async def quiz_question(req: QuizRequest):
+    query = req.topic or "Chinese language vocabulary grammar sentence patterns"
+    chunks = await _retrieve_chunks(query, k=5)
+    context = "\n\n---\n\n".join(chunks)
+
+    completion = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a Chinese language teacher creating quiz questions. Return only valid JSON."},
+            {"role": "user", "content": f"""Based on this course material, create ONE quiz question to test the student.
+The question can test vocabulary, grammar, translation, or comprehension.
+Be specific and grounded in the material provided.
+Return JSON with keys: "question" (the question text), "type" (vocabulary/grammar/translation/comprehension).
+
+Course material:
+{context}"""},
+        ],
+        response_format={"type": "json_object"},
+    )
+    data = json.loads(completion.choices[0].message.content)
+    return JSONResponse({
+        "question": data.get("question", ""),
+        "type": data.get("type", ""),
+    })
+
+
+class EvaluateRequest(BaseModel):
+    question: str
+    answer: str
+
+
+@app.post("/quiz/evaluate")
+async def quiz_evaluate(req: EvaluateRequest):
+    chunks = await _retrieve_chunks(req.question, k=5)
+    context = "\n\n---\n\n".join(chunks)
+
+    completion = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a Chinese language teacher evaluating a student's answer. Return only valid JSON."},
+            {"role": "user", "content": f"""Evaluate the student's answer based on the course material.
+
+Question: {req.question}
+Student's answer: {req.answer}
+
+Course material:
+{context}
+
+Return JSON with:
+- "score": integer 0-100
+- "correct": true if score >= 70, false otherwise
+- "feedback": brief, encouraging explanation of what was right or wrong
+- "correct_answer": the ideal answer according to the course material"""},
+        ],
+        response_format={"type": "json_object"},
+    )
+    data = json.loads(completion.choices[0].message.content)
+    return JSONResponse({
+        "score": data.get("score", 0),
+        "correct": data.get("correct", False),
+        "feedback": data.get("feedback", ""),
+        "correct_answer": data.get("correct_answer", ""),
+    })
+
+
 class WordData(BaseModel):
     word: str
     english: str

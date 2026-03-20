@@ -25,6 +25,19 @@ struct SentenceResult: Decodable {
     let sentence_translation: String
 }
 
+// Quiz models
+struct QuizQuestion: Decodable {
+    let question: String
+    let type: String
+}
+
+struct QuizEvaluation: Decodable {
+    let score: Int
+    let correct: Bool
+    let feedback: String
+    let correct_answer: String
+}
+
 class APIClient {
     private let base = "https://chinese-app-a96d.onrender.com"
 
@@ -55,6 +68,44 @@ class APIClient {
                 completion(decoded, nil)
             } catch {
                 completion(nil, "Decode error: \(error.localizedDescription)\nRaw: \(String(data: data, encoding: .utf8) ?? "")")
+            }
+        }.resume()
+    }
+
+    // Quiz: get a question based on optional topic
+    func fetchQuestion(topic: String?, completion: @escaping (QuizQuestion?, String?) -> Void) {
+        var request = URLRequest(url: URL(string: "\(base)/quiz/question")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var payload: [String: Any] = [:]
+        if let topic = topic, !topic.isEmpty { payload["topic"] = topic }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let err = error { completion(nil, err.localizedDescription); return }
+            guard let data = data else { completion(nil, "No data"); return }
+            do {
+                completion(try JSONDecoder().decode(QuizQuestion.self, from: data), nil)
+            } catch {
+                completion(nil, "Decode error: \(String(data: data, encoding: .utf8) ?? "")")
+            }
+        }.resume()
+    }
+
+    // Quiz: evaluate the student's answer
+    func evaluateAnswer(question: String, answer: String, completion: @escaping (QuizEvaluation?, String?) -> Void) {
+        var request = URLRequest(url: URL(string: "\(base)/quiz/evaluate")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["question": question, "answer": answer])
+
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let err = error { completion(nil, err.localizedDescription); return }
+            guard let data = data else { completion(nil, "No data"); return }
+            do {
+                completion(try JSONDecoder().decode(QuizEvaluation.self, from: data), nil)
+            } catch {
+                completion(nil, "Decode error: \(String(data: data, encoding: .utf8) ?? "")")
             }
         }.resume()
     }
