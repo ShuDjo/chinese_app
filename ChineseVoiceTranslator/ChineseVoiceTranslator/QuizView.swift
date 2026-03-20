@@ -10,8 +10,7 @@ class QuizSpeaker: NSObject, ObservableObject {
     func speak(_ text: String) {
         synthesizer.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN")
-            ?? AVSpeechSynthesisVoice(language: "en-US")
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
         utterance.rate = 0.4
         synthesizer.speak(utterance)
     }
@@ -351,6 +350,7 @@ struct QuizView: View {
                                 Text(currentQuestion)
                                     .font(.title3)
                                     .fontWeight(.bold)
+                                    .foregroundColor(.black)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             .padding(18)
