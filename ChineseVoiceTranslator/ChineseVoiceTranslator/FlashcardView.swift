@@ -161,6 +161,16 @@ struct FlashcardView: View {
                     .padding(.vertical, 12)
                     .background(Theme.red.opacity(0.08))
                     .cornerRadius(14)
+
+                if result == .incorrect {
+                    Button("Next Card") { nextCard() }
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Theme.jade)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Theme.jade.opacity(0.08))
+                        .cornerRadius(14)
+                }
             }
         }
     }
