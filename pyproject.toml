@@ -9,6 +9,7 @@ dependencies = [
     "jieba>=0.42.1",
     "psycopg2-binary>=2.9.0",
     "openai>=2.8.1",
+    "openai-agents>=0.0.19",
     "python-multipart>=0.0.20",
     "uvicorn>=0.38.0",
 ]
