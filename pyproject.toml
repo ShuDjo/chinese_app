@@ -12,4 +12,8 @@ dependencies = [
     "openai>=2.8.1",
     "python-multipart>=0.0.20",
     "uvicorn>=0.38.0",
+    # ingestion script only
+    "pymupdf>=1.24.0",
+    "psycopg2-binary>=2.9.0",
+    "python-dotenv>=1.0.0",
 ]
