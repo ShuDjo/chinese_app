@@ -140,7 +140,7 @@ async def cache_stroke_data(words: list[str]) -> None:
 # ── LLM helpers ───────────────────────────────────────────────────────────────
 
 def segment_chinese(text: str) -> list[str]:
-    return [w.strip() for w in jieba.cut(text) if w.strip()]
+    return [w.strip() for w in jieba.cut(text) if w.strip() and any(is_cjk(c) for c in w)]
 
 
 async def _translate_words(words: list[str]) -> list[dict]:
