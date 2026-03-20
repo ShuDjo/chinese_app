@@ -471,6 +471,22 @@ async def character_lookup(req: CharacterLookupRequest):
     })
 
 
+@app.get("/character/random")
+async def character_random():
+    """Return a random word from the word_cache table."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT word, pinyin, english FROM word_cache ORDER BY RANDOM() LIMIT 1"
+        )
+    if not row:
+        raise HTTPException(status_code=404, detail="No characters in database")
+    return JSONResponse({
+        "characters": row["word"],
+        "pinyin": row["pinyin"],
+        "english": row["english"],
+    })
+
+
 class WordData(BaseModel):
     word: str
     english: str

@@ -32,6 +32,8 @@ struct ChineseVoiceTranslatorApp: App {
                     .tabItem { Label("Quiz", systemImage: "list.bullet.clipboard") }
                 CharacterView()
                     .tabItem { Label("Characters", systemImage: "character") }
+                FlashcardView()
+                    .tabItem { Label("Flash Cards", systemImage: "rectangle.stack.fill") }
             }
             .tint(Theme.red)
         }

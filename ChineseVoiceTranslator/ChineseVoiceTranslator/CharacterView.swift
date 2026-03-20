@@ -70,19 +70,26 @@ struct CharacterView: View {
                 .font(.system(size: 110, weight: .black))
                 .foregroundColor(Color.white.opacity(0.08))
                 .offset(x: 60, y: 10)
-            VStack(spacing: 4) {
-                Text("Characters")
-                    .font(.system(size: 22, weight: .bold))
+
+            HStack {
+                Text("☭")
+                    .font(.system(size: 100))
                     .foregroundColor(.white)
-                Text("Look up stroke animations")
-                    .font(.subheadline)
-                    .foregroundColor(Color.white.opacity(0.75))
+                    .padding(.leading, 12)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("XuéBàn")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("Look up stroke animations")
+                        .font(.subheadline)
+                        .foregroundColor(Color.white.opacity(0.75))
+                }
+                .padding(.trailing, 20)
             }
-            .padding(.top, 12)
-            .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 130)
+        .frame(height: 200)
     }
 
     // MARK: - Search Card

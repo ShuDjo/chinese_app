@@ -196,6 +196,20 @@ class APIClient {
         }.resume()
     }
 
+    // Flashcard: fetch a random character from the database
+    func fetchRandomFlashcard(completion: @escaping (CharacterLookupResult?, String?) -> Void) {
+        let url = URL(string: "\(base)/character/random")!
+        URLSession.shared.dataTask(with: url) { data, _, error in
+            if let err = error { completion(nil, err.localizedDescription); return }
+            guard let data = data else { completion(nil, "No data"); return }
+            do {
+                completion(try JSONDecoder().decode(CharacterLookupResult.self, from: data), nil)
+            } catch {
+                completion(nil, "Decode error: \(String(data: data, encoding: .utf8) ?? "")")
+            }
+        }.resume()
+    }
+
     // Shared helper for JSON POST requests
     private func postJSON(_ urlString: String, body: [String: Any], completion: @escaping (Data?, String?) -> Void) {
         var request = URLRequest(url: URL(string: urlString)!)
