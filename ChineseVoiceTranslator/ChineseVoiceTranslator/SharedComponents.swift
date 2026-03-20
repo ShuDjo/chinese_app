@@ -133,33 +133,32 @@ struct WordRowView: View {
         Button(action: onTap) {
             HStack(spacing: 12) {
                 // Chinese character + pinyin side by side
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(word.word)
-                        .font(.system(size: 30, weight: .bold))
-                        .foregroundColor(Color(UIColor.label))
-                    Text(word.pinyin)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(Theme.red)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(word.word)
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundColor(.black)
+                        Text(word.pinyin)
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundColor(Theme.red)
+                    }
+                    Text(word.english)
+                        .font(.callout)
+                        .foregroundColor(Color.black.opacity(0.6))
+                        .lineLimit(2)
                 }
-                .frame(minWidth: 110, alignment: .leading)
-
-                // English
-                Text(word.english)
-                    .font(.callout)
-                    .foregroundColor(Color(UIColor.label).opacity(0.75))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Cache badge
                 if word.from_cache {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(Theme.jade)
-                        .font(.system(size: 16))
+                        .font(.system(size: 18))
                 }
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color(UIColor.label).opacity(0.3))
+                    .foregroundColor(Color.black.opacity(0.25))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

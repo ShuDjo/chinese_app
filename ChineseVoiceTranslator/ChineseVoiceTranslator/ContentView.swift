@@ -288,7 +288,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(trans.chinese_transcription)
                     .font(.system(size: 26, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.black)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let sentence = sentenceTranslation {
@@ -310,7 +310,7 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Words — tap to see strokes")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color.black.opacity(0.5))
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
 
