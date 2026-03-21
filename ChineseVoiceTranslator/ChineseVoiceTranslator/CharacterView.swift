@@ -18,9 +18,23 @@ struct CharacterView: View {
                         .ignoresSafeArea(edges: .top)
 
                     VStack(spacing: 20) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(Theme.red)
+                            Text("Type an English word, pinyin, or Chinese characters to look up. See the character's meaning, pronunciation, and watch the animated stroke order.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+
                         searchCard
                             .padding(.horizontal, 16)
-                            .padding(.top, 24)
 
                         if let result = result, !result.characters.isEmpty {
                             resultCard(result: result)

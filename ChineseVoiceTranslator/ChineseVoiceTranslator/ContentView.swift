@@ -136,6 +136,7 @@ struct ContentView: View {
     @State private var sentenceTranslation: String?
     @State private var errorMessage: String?
     @State private var selectedWord: WordResult?
+    @State private var declinedWords: Set<String> = []
 
     private let recorder = AudioRecorder()
     private let api = APIClient()
@@ -152,8 +153,23 @@ struct ContentView: View {
 
                     // Main content
                     VStack(spacing: 20) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(Theme.red)
+                            Text("Tap the mic and speak Chinese. Your speech will be transcribed and each word translated. Tap any word to see its stroke animation.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+
                         recordButtonSection
-                            .padding(.top, 32)
+                            .padding(.top, 8)
 
                         if isTranscribing {
                             HStack(spacing: 10) {
@@ -274,6 +290,7 @@ struct ContentView: View {
                     errorMessage = nil
                     withAnimation { transcription = nil }
                     sentenceTranslation = nil
+                    declinedWords = []
                     recorder.startRecording()
                     isRecording = true
                 }
@@ -322,7 +339,17 @@ struct ContentView: View {
 
                     VStack(spacing: 8) {
                         ForEach(trans.words) { wordResult in
-                            WordRowView(word: wordResult) {
+                            WordRowView(
+                                word: wordResult,
+                                isDeclined: declinedWords.contains(wordResult.word),
+                                onDecline: wordResult.from_cache ? nil : {
+                                    if declinedWords.contains(wordResult.word) {
+                                        declinedWords.remove(wordResult.word)
+                                    } else {
+                                        declinedWords.insert(wordResult.word)
+                                    }
+                                }
+                            ) {
                                 selectedWord = wordResult
                             }
                             .padding(.horizontal, 16)
@@ -332,8 +359,9 @@ struct ContentView: View {
                 }
             }
 
-            // Accept / Saving button
-            if sentenceTranslation == nil {
+            // Accept / Saving button — only shown when there are new words to save
+            let wordsToSave = trans.words.filter { !$0.from_cache && !declinedWords.contains($0.word) }
+            if sentenceTranslation == nil && !wordsToSave.isEmpty {
                 Divider().padding(.horizontal, 16)
                 VStack {
                     if isTranslating {
@@ -347,7 +375,7 @@ struct ContentView: View {
                     } else {
                         Button {
                             isTranslating = true
-                            api.translateText(trans.chinese_transcription, words: trans.words) { sentence, err in
+                            api.translateText(trans.chinese_transcription, words: wordsToSave) { sentence, err in
                                 DispatchQueue.main.async {
                                     isTranslating = false
                                     if let err = err { errorMessage = err }

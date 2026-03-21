@@ -58,6 +58,21 @@ struct FlashcardView: View {
 
                 ScrollView {
                     VStack(spacing: 24) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(Theme.red)
+                            Text("Tap Start to load a character card. Type the English meaning or pinyin and submit. Use Show Answer if you're stuck, then move to the next card.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+
                         if isLoading {
                             ProgressView()
                                 .padding(.top, 80)

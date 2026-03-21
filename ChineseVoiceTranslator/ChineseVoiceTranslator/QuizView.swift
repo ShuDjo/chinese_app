@@ -112,6 +112,21 @@ struct QuizView: View {
                 .ignoresSafeArea(edges: .top)
 
                 VStack(spacing: 20) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundColor(Theme.red)
+                        Text("Pick a topic or choose Random/Recent, then start a session. Speak your answers in Chinese when prompted. Tap Stop & Evaluate to get your score and feedback.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(12)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+
                     // Quick-pick card
                     VStack(alignment: .leading, spacing: 14) {
                         Label("Quick Start", systemImage: "bolt.fill")

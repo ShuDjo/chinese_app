@@ -127,46 +127,63 @@ struct PulsingRecordButton: View {
 
 struct WordRowView: View {
     let word: WordResult
+    var isDeclined: Bool = false
+    var onDecline: (() -> Void)? = nil
     let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                // Chinese character + pinyin side by side
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(word.word)
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundColor(.black)
-                        Text(word.pinyin)
-                            .font(.system(size: 17, weight: .medium))
-                            .foregroundColor(Theme.red)
+        HStack(spacing: 8) {
+            Button(action: onTap) {
+                HStack(spacing: 12) {
+                    // Chinese character + pinyin side by side
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(word.word)
+                                .font(.system(size: 48, weight: .bold))
+                                .foregroundColor(isDeclined ? Color.black.opacity(0.3) : .black)
+                                .strikethrough(isDeclined, color: Color.black.opacity(0.3))
+                            Text(word.pinyin)
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundColor(isDeclined ? Color.secondary.opacity(0.5) : Theme.red)
+                        }
+                        Text(word.english)
+                            .font(.callout)
+                            .foregroundColor(isDeclined ? Color.black.opacity(0.25) : Color.black.opacity(0.6))
+                            .lineLimit(2)
                     }
-                    Text(word.english)
-                        .font(.callout)
-                        .foregroundColor(Color.black.opacity(0.6))
-                        .lineLimit(2)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Cache badge
-                if word.from_cache {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(Theme.jade)
-                        .font(.system(size: 18))
-                }
+                    // Cache badge or stroke hint
+                    if word.from_cache {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(Theme.jade)
+                            .font(.system(size: 18))
+                    }
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color.black.opacity(0.25))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color.black.opacity(isDeclined ? 0.1 : 0.25))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(Color.white)
-            .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.06), radius: 5, x: 0, y: 2)
+            .buttonStyle(.plain)
+
+            // Decline / undo button for new words only
+            if let onDecline = onDecline {
+                Button(action: onDecline) {
+                    Image(systemName: isDeclined ? "arrow.uturn.left.circle.fill" : "xmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(isDeclined ? Theme.jade : Color.red.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 12)
+            }
         }
-        .buttonStyle(.plain)
+        .background(Color.white)
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.06), radius: 5, x: 0, y: 2)
+        .opacity(isDeclined ? 0.7 : 1.0)
     }
 }
 
