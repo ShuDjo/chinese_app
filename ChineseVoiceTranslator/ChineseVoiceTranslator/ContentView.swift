@@ -357,9 +357,24 @@ struct ContentView: View {
     private func lookupResultCard(result: CharacterLookupResult) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(result.characters)
-                    .font(.system(size: 52, weight: .bold))
-                    .foregroundColor(.black)
+                Button {
+                    selectedWord = WordResult(
+                        word: result.characters,
+                        english: result.english,
+                        pinyin: result.pinyin,
+                        from_cache: false
+                    )
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(result.characters)
+                            .font(.system(size: 52, weight: .bold))
+                            .foregroundColor(.black)
+                        Image(systemName: "hand.tap.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Theme.red.opacity(0.6))
+                    }
+                }
+                .buttonStyle(.plain)
 
                 Text(result.pinyin)
                     .font(.system(size: 20, weight: .medium))
