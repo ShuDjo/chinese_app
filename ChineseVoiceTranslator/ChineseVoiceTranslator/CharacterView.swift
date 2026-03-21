@@ -34,7 +34,7 @@ struct CharacterView: View {
                                         .foregroundColor(.primary)
                                     Text("Search by English word, pinyin, or Chinese characters to instantly see the meaning, pronunciation, and an animated stroke-by-stroke drawing of every character.")
                                         .font(.footnote)
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.primary)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }

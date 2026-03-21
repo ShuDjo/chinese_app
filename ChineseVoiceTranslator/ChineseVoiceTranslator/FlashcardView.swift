@@ -74,7 +74,7 @@ struct FlashcardView: View {
                                         .foregroundColor(.primary)
                                     Text("A random character from your vocabulary is shown — type its English meaning or pinyin to test your memory. Use Show Answer if you're stuck, then move on to keep the streak going.")
                                         .font(.footnote)
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.primary)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }

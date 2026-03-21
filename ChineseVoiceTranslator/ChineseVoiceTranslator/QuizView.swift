@@ -128,7 +128,7 @@ struct QuizView: View {
                                     .foregroundColor(.primary)
                                 Text("Pick a topic or draw from your saved vocabulary. Speak your answers in Chinese — the AI evaluates your session and gives you a detailed score, strengths, and improvement tips.")
                                     .font(.footnote)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.primary)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
