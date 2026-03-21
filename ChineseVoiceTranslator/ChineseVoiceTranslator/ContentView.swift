@@ -128,15 +128,27 @@ struct StrokeOrderView: UIViewRepresentable {
 
 // MARK: - Content View
 
+enum InputMode { case mic, text }
+
 struct ContentView: View {
-    @State private var isRecording = false
-    @State private var isTranscribing = false
+    // Shared
+    @State private var inputMode: InputMode = .mic
     @State private var isTranslating = false
-    @State private var transcription: TranscriptionResult?
-    @State private var sentenceTranslation: String?
     @State private var errorMessage: String?
     @State private var selectedWord: WordResult?
+
+    // Mic mode
+    @State private var isRecording = false
+    @State private var isTranscribing = false
+    @State private var transcription: TranscriptionResult?
+    @State private var sentenceTranslation: String?
     @State private var declinedWords: Set<String> = []
+
+    // Text mode
+    @State private var textQuery: String = ""
+    @State private var isLookingUp = false
+    @State private var lookupResult: CharacterLookupResult? = nil
+    @State private var lookupSaved = false
 
     private let recorder = AudioRecorder()
     private let api = APIClient()
@@ -153,6 +165,7 @@ struct ContentView: View {
 
                     // Main content
                     VStack(spacing: 20) {
+                        // Info banner
                         HStack(spacing: 0) {
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(Theme.red)
@@ -181,27 +194,74 @@ struct ContentView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
 
-                        recordButtonSection
-                            .padding(.top, 8)
-
-                        if isTranscribing {
-                            HStack(spacing: 10) {
-                                ProgressView()
-                                Text("Transcribing…")
-                                    .font(.callout)
-                                    .foregroundColor(.secondary)
+                        // Input mode toggle
+                        Picker("Input Mode", selection: $inputMode) {
+                            Label("Mic", systemImage: "mic.fill").tag(InputMode.mic)
+                            Label("Type", systemImage: "keyboard").tag(InputMode.text)
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16)
+                        .onChange(of: inputMode) { _, mode in
+                            errorMessage = nil
+                            if mode == .mic {
+                                textQuery = ""
+                                lookupResult = nil
+                                lookupSaved = false
+                            } else {
+                                withAnimation { transcription = nil }
+                                sentenceTranslation = nil
+                                declinedWords = []
                             }
-                            .padding(.vertical, 8)
-                            .transition(.opacity)
                         }
 
-                        if let trans = transcription {
-                            resultsCard(trans: trans)
+                        if inputMode == .mic {
+                            // ── Mic mode ──
+                            recordButtonSection
+                                .padding(.top, 8)
+
+                            if isTranscribing {
+                                HStack(spacing: 10) {
+                                    ProgressView()
+                                    Text("Transcribing…")
+                                        .font(.callout)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 8)
+                                .transition(.opacity)
+                            }
+
+                            if let trans = transcription {
+                                resultsCard(trans: trans)
+                                    .padding(.horizontal, 16)
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                                        removal: .opacity
+                                    ))
+                            }
+                        } else {
+                            // ── Text mode ──
+                            textInputSection
                                 .padding(.horizontal, 16)
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                                    removal: .opacity
-                                ))
+
+                            if isLookingUp {
+                                HStack(spacing: 10) {
+                                    ProgressView()
+                                    Text("Looking up…")
+                                        .font(.callout)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 8)
+                                .transition(.opacity)
+                            }
+
+                            if let result = lookupResult {
+                                lookupResultCard(result: result)
+                                    .padding(.horizontal, 16)
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                                        removal: .opacity
+                                    ))
+                            }
                         }
 
                         if let error = errorMessage {
@@ -227,6 +287,8 @@ struct ContentView: View {
                     }
                     .animation(.spring(response: 0.45, dampingFraction: 0.8), value: transcription == nil)
                     .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isTranscribing)
+                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isLookingUp)
+                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: lookupResult == nil)
                     .animation(.spring(response: 0.45, dampingFraction: 0.8), value: errorMessage)
                 }
             }
@@ -234,6 +296,149 @@ struct ContentView: View {
         }
         .sheet(item: $selectedWord) { word in
             strokeSheet(word: word)
+        }
+    }
+
+    // MARK: - Text Input Section
+
+    @FocusState private var textFieldFocused: Bool
+
+    private var textInputSection: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                TextField("Type English or pinyin…", text: $textQuery)
+                    .font(.callout)
+                    .focused($textFieldFocused)
+                    .onSubmit { performLookup() }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(10)
+
+                Button {
+                    performLookup()
+                } label: {
+                    Text("Look Up")
+                        .font(.callout.weight(.semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(
+                            textQuery.trimmingCharacters(in: .whitespaces).isEmpty || isLookingUp
+                                ? Color.gray.opacity(0.4) : Theme.red
+                        )
+                        .cornerRadius(10)
+                }
+                .disabled(textQuery.trimmingCharacters(in: .whitespaces).isEmpty || isLookingUp)
+            }
+        }
+    }
+
+    private func performLookup() {
+        let query = textQuery.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return }
+        textFieldFocused = false
+        isLookingUp = true
+        lookupResult = nil
+        lookupSaved = false
+        errorMessage = nil
+        api.lookupCharacter(query) { result, err in
+            DispatchQueue.main.async {
+                isLookingUp = false
+                if let err = err { errorMessage = err }
+                withAnimation { lookupResult = result }
+            }
+        }
+    }
+
+    // MARK: - Lookup Result Card
+
+    @ViewBuilder
+    private func lookupResultCard(result: CharacterLookupResult) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(result.characters)
+                    .font(.system(size: 52, weight: .bold))
+                    .foregroundColor(.black)
+
+                Text(result.pinyin)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(Theme.red)
+
+                Text(result.english)
+                    .font(.callout)
+                    .foregroundColor(Color.black.opacity(0.6))
+            }
+            .padding(16)
+
+            Divider().padding(.horizontal, 16)
+
+            if lookupSaved {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(Theme.jade)
+                    Text("Added to vocabulary")
+                        .font(.callout.weight(.semibold))
+                        .foregroundColor(Theme.jade)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+            } else if isTranslating {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text("Saving…")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+            } else {
+                Button {
+                    saveLookupResult(result)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Add to Vocabulary")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            colors: [Theme.jade, Color(red: 0.10, green: 0.42, blue: 0.26)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+        }
+        .background(Color.white)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+    }
+
+    private func saveLookupResult(_ result: CharacterLookupResult) {
+        let word = WordResult(
+            word: result.characters,
+            english: result.english,
+            pinyin: result.pinyin,
+            from_cache: false
+        )
+        isTranslating = true
+        api.translateText(result.characters, words: [word]) { _, err in
+            DispatchQueue.main.async {
+                isTranslating = false
+                if let err = err {
+                    errorMessage = err
+                } else {
+                    withAnimation { lookupSaved = true }
+                }
+            }
         }
     }
 
