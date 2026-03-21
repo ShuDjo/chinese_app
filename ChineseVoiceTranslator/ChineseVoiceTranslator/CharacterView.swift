@@ -18,18 +18,36 @@ struct CharacterView: View {
                         .ignoresSafeArea(edges: .top)
 
                     VStack(spacing: 20) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "info.circle.fill")
-                                .foregroundColor(Theme.red)
-                            Text("Type an English word, pinyin, or Chinese characters to look up. See the character's meaning, pronunciation, and watch the animated stroke order.")
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(Theme.red.opacity(0.12))
+                                    .frame(width: 46, height: 46)
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundColor(Theme.red)
+                            }
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Search any word or character!")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                Text("Enter English, pinyin, or Chinese to get the meaning, pronunciation, and stroke animation.")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
-                        .padding(12)
+                        .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Theme.red.opacity(0.06))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Theme.red.opacity(0.15), lineWidth: 1)
+                                )
+                        )
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
 

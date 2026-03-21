@@ -112,18 +112,36 @@ struct QuizView: View {
                 .ignoresSafeArea(edges: .top)
 
                 VStack(spacing: 20) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundColor(Theme.red)
-                        Text("Pick a topic or choose Random/Recent, then start a session. Speak your answers in Chinese when prompted. Tap Stop & Evaluate to get your score and feedback.")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(Theme.red.opacity(0.12))
+                                .frame(width: 46, height: 46)
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(Theme.red)
+                        }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Choose a topic & start your session!")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                            Text("Speak your answers in Chinese when prompted, then tap Stop & Evaluate for AI-powered feedback.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
-                    .padding(12)
+                    .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .cornerRadius(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Theme.red.opacity(0.06))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Theme.red.opacity(0.15), lineWidth: 1)
+                            )
+                    )
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
 

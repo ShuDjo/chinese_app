@@ -58,18 +58,36 @@ struct FlashcardView: View {
 
                 ScrollView {
                     VStack(spacing: 24) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "info.circle.fill")
-                                .foregroundColor(Theme.red)
-                            Text("Tap Start to load a character card. Type the English meaning or pinyin and submit. Use Show Answer if you're stuck, then move to the next card.")
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(Theme.red.opacity(0.12))
+                                    .frame(width: 46, height: 46)
+                                Image(systemName: "rectangle.stack.fill")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(Theme.red)
+                            }
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Ready to test yourself?")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                Text("Tap Start, then type the meaning or pinyin. Use Show Answer whenever you need a hint.")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
-                        .padding(12)
+                        .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Theme.red.opacity(0.06))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Theme.red.opacity(0.15), lineWidth: 1)
+                                )
+                        )
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
 

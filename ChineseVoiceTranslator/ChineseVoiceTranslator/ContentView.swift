@@ -153,18 +153,36 @@ struct ContentView: View {
 
                     // Main content
                     VStack(spacing: 20) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "info.circle.fill")
-                                .foregroundColor(Theme.red)
-                            Text("Tap the mic and speak Chinese. Your speech will be transcribed and each word translated. Tap any word to see its stroke animation.")
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(Theme.red.opacity(0.12))
+                                    .frame(width: 46, height: 46)
+                                Image(systemName: "mic.fill")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundColor(Theme.red)
+                            }
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Tap the mic & start speaking!")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                Text("Speak Chinese and get word-by-word translations. Tap any word to watch its stroke animation.")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
-                        .padding(12)
+                        .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Theme.red.opacity(0.06))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Theme.red.opacity(0.15), lineWidth: 1)
+                                )
+                        )
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
 
