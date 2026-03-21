@@ -163,11 +163,11 @@ struct ContentView: View {
                                     .foregroundColor(Theme.red)
                             }
                             VStack(alignment: .leading, spacing: 3) {
-                                Text("Tap the mic & start speaking!")
+                                Text("Record, transcribe & build your vocabulary")
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)
-                                Text("Speak Chinese and get word-by-word translations. Tap any word to watch its stroke animation.")
+                                Text("Speak any Chinese sentence and get an instant word-by-word breakdown with translations and pinyin. Tap a word to watch its stroke order animation. Hit Accept & Save to add new words to your personal vocabulary.")
                                     .font(.footnote)
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)

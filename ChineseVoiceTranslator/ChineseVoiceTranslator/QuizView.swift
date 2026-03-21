@@ -122,11 +122,11 @@ struct QuizView: View {
                                 .foregroundColor(Theme.red)
                         }
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Choose a topic & start your session!")
+                            Text("Practice speaking with AI-guided questions")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
-                            Text("Speak your answers in Chinese when prompted, then tap Stop & Evaluate for AI-powered feedback.")
+                            Text("Pick a topic or draw from your saved vocabulary. Speak your answers in Chinese — the AI evaluates your session and gives you a detailed score, strengths, and improvement tips.")
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

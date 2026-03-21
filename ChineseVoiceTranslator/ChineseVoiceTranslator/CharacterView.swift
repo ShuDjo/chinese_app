@@ -28,11 +28,11 @@ struct CharacterView: View {
                                     .foregroundColor(Theme.red)
                             }
                             VStack(alignment: .leading, spacing: 3) {
-                                Text("Search any word or character!")
+                                Text("Look up any character & learn its strokes")
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)
-                                Text("Enter English, pinyin, or Chinese to get the meaning, pronunciation, and stroke animation.")
+                                Text("Search by English word, pinyin, or Chinese characters to instantly see the meaning, pronunciation, and an animated stroke-by-stroke drawing of every character.")
                                     .font(.footnote)
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)

@@ -68,11 +68,11 @@ struct FlashcardView: View {
                                     .foregroundColor(Theme.red)
                             }
                             VStack(alignment: .leading, spacing: 3) {
-                                Text("Ready to test yourself?")
+                                Text("Quiz yourself on your saved vocabulary")
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)
-                                Text("Tap Start, then type the meaning or pinyin. Use Show Answer whenever you need a hint.")
+                                Text("A random character from your vocabulary is shown — type its English meaning or pinyin to test your memory. Use Show Answer if you're stuck, then move on to keep the streak going.")
                                     .font(.footnote)
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
