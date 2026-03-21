@@ -169,7 +169,7 @@ struct ContentView: View {
                                         .foregroundColor(.primary)
                                     Text("Speak any Chinese sentence and get an instant word-by-word breakdown with translations and pinyin. Tap a word to watch its stroke order animation. Hit Accept & Save to add new words to your personal vocabulary.")
                                         .font(.footnote)
-                                        .foregroundColor(.primary)
+                                        .foregroundColor(.black)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
