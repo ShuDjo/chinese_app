@@ -153,36 +153,31 @@ struct ContentView: View {
 
                     // Main content
                     VStack(spacing: 20) {
-                        HStack(spacing: 14) {
-                            ZStack {
-                                Circle()
-                                    .fill(Theme.red.opacity(0.12))
-                                    .frame(width: 46, height: 46)
+                        HStack(spacing: 0) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Theme.red)
+                                .frame(width: 4)
+                            HStack(spacing: 12) {
                                 Image(systemName: "mic.fill")
-                                    .font(.system(size: 20, weight: .semibold))
+                                    .font(.system(size: 22, weight: .semibold))
                                     .foregroundColor(Theme.red)
+                                    .frame(width: 28)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Record, transcribe & build your vocabulary")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.primary)
+                                    Text("Speak any Chinese sentence and get an instant word-by-word breakdown with translations and pinyin. Tap a word to watch its stroke order animation. Hit Accept & Save to add new words to your personal vocabulary.")
+                                        .font(.footnote)
+                                        .foregroundColor(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Record, transcribe & build your vocabulary")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.primary)
-                                Text("Speak any Chinese sentence and get an instant word-by-word breakdown with translations and pinyin. Tap a word to watch its stroke order animation. Hit Accept & Save to add new words to your personal vocabulary.")
-                                    .font(.footnote)
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 14)
                         }
-                        .padding(14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Theme.red.opacity(0.06))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(Theme.red.opacity(0.15), lineWidth: 1)
-                                )
-                        )
+                        .cardStyle(cornerRadius: 14)
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
 
