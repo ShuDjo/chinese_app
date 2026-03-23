@@ -7,7 +7,6 @@ struct CharacterView: View {
     @State private var errorMessage: String?
 
     private let api = APIClient()
-    private let accentBlue = Color(red: 0.15, green: 0.40, blue: 0.85)
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -21,12 +20,12 @@ struct CharacterView: View {
                     VStack(spacing: 20) {
                         HStack(spacing: 0) {
                             RoundedRectangle(cornerRadius: 2)
-                                .fill(accentBlue)
+                                .fill(Theme.red)
                                 .frame(width: 4)
                             HStack(spacing: 12) {
                                 Image(systemName: "magnifyingglass")
                                     .font(.system(size: 22, weight: .semibold))
-                                    .foregroundColor(accentBlue)
+                                    .foregroundColor(Theme.red)
                                     .frame(width: 28)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Look up any character & learn its strokes")
@@ -90,7 +89,7 @@ struct CharacterView: View {
     private var headerView: some View {
         ZStack {
             LinearGradient(
-                colors: [accentBlue, accentBlue.opacity(0.7)],
+                colors: [Theme.red, Theme.red.opacity(0.7)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -126,7 +125,7 @@ struct CharacterView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("English, Pinyin, or Chinese", systemImage: "magnifyingglass")
                 .font(.headline)
-                .foregroundColor(accentBlue)
+                .foregroundColor(Theme.red)
 
             HStack(spacing: 10) {
                 TextField("e.g.  hello  •  ni hao  •  你好", text: $query)
@@ -148,7 +147,7 @@ struct CharacterView: View {
                         Image(systemName: "arrow.right.circle.fill")
                             .font(.system(size: 36))
                             .foregroundColor(query.trimmingCharacters(in: .whitespaces).isEmpty
-                                             ? Color.gray.opacity(0.35) : accentBlue)
+                                             ? Color.gray.opacity(0.35) : Theme.red)
                     }
                 }
                 .disabled(query.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
@@ -179,7 +178,7 @@ struct CharacterView: View {
                     Text(result.pinyin)
                         .font(.title3)
                         .fontWeight(.medium)
-                        .foregroundColor(accentBlue)
+                        .foregroundColor(Theme.red)
                     if !result.english.isEmpty {
                         Text("·")
                             .foregroundColor(Color.black.opacity(0.3))
