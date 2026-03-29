@@ -372,6 +372,8 @@ async def quiz_start(req: QuizStartRequest):
                 "\n  • Describe-a-situation (e.g. 你能介绍一下你的家人吗？)"
                 "\n  • Simple role-play (e.g. 我是你的同事，你怎么向我介绍你自己？)"
                 "\n- Keep questions concise — one question at a time."
+                "\n- CRITICAL: Only use vocabulary and grammar structures that appear in the provided lesson material. "
+                "Do NOT introduce any new words, expressions, or grammar patterns the student has not yet encountered in the course."
                 "\nReturn only valid JSON with key 'question'."
             )},
             {"role": "user", "content": f"""The student has studied the following lesson material. Use it to understand their vocabulary and grammar level:
@@ -413,6 +415,8 @@ async def quiz_next(req: QuizSessionRequest):
                 "\n  • Occasionally acknowledge their answer briefly in Chinese before the next question (e.g. 好的，那...？ or 明白了，你觉得...？)"
                 "\n- Vary the question types: personal questions, situational prompts, opinions, role-play, describe a scenario."
                 "\n- Keep it conversational — one short question at a time."
+                "\n- CRITICAL: Only use vocabulary and grammar structures that appear in the provided lesson material. "
+                "Do NOT introduce any new words, expressions, or grammar patterns the student has not yet encountered in the course."
                 "\nReturn only valid JSON with key 'question'."
             )},
             {"role": "user", "content": f"""Lesson material (for vocabulary/grammar reference only — do not copy):
