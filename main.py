@@ -441,22 +441,35 @@ async def quiz_finish(req: QuizSessionRequest):
     completion = await client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a strict Chinese language examiner. Evaluate honestly and precisely. Return only valid JSON."},
-            {"role": "user", "content": f"""Evaluate this student's Chinese examination on: "{req.topic}"
+            {"role": "system", "content": (
+                "You are an experienced Chinese oral examiner evaluating a spoken conversation. "
+                "The student's answers are speech-to-text transcriptions — they will have no punctuation, "
+                "may have run-on words, and spacing may be imperfect. "
+                "IGNORE all formatting, punctuation, and spacing issues entirely. "
+                "Evaluate ONLY the substance of communication: "
+                "did the student understand the question, did they respond appropriately, "
+                "did they use correct vocabulary and grammar for their level, "
+                "did they express themselves clearly and naturally in Chinese. "
+                "Never mention missing commas, spaces, or punctuation as mistakes. "
+                "Return only valid JSON."
+            )},
+            {"role": "user", "content": f"""Evaluate this student's Chinese oral examination on: "{req.topic}"
+
+The answers below are raw speech-to-text transcriptions. Judge the meaning and language ability, not the formatting.
 
 Full conversation:
 {_history_text(req.history)}
 
 Return JSON with:
-- "overall_score": integer 0-100
-- "summary": 2-3 sentence assessment of the student's Chinese proficiency demonstrated in this exam
-- "strengths": array of 2-3 specific strengths observed (e.g. correct tones, accurate vocabulary, good sentence structure)
-- "improvements": array of 2-3 specific areas needing improvement
+- "overall_score": integer 0-100 based on comprehension, vocabulary, grammar, and communication ability
+- "summary": 2-3 sentence assessment focused on how well the student communicated in Chinese
+- "strengths": array of 2-3 specific strengths (e.g. appropriate vocabulary, correct grammar pattern, natural responses, good comprehension)
+- "improvements": array of 2-3 specific language areas to work on (e.g. wrong measure word, incorrect verb complement, limited vocabulary range)
 - "exchanges": array of objects, one per Q&A pair, each with:
   - "question": the question asked
   - "answer": the student's answer
-  - "score": integer 0-100 for that specific answer
-  - "mistake": null if the answer was good, otherwise a specific description of what was wrong (e.g. wrong tone, wrong measure word, missing grammar point, incorrect character)"""},
+  - "score": integer 0-100 for that exchange
+  - "mistake": null if the answer was communicatively correct, otherwise describe the actual language error (wrong word choice, incorrect grammar structure, misunderstood the question, etc.) — never mention punctuation or spacing"""},
         ],
         response_format={"type": "json_object"},
     )
