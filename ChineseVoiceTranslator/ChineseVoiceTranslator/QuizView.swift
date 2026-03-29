@@ -11,7 +11,8 @@ class QuizSpeaker: NSObject, ObservableObject {
         synthesizer.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN")
-        utterance.rate = 0.45
+        utterance.rate = 0.35
+        utterance.volume = 1.0
         synthesizer.speak(utterance)
     }
 
