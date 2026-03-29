@@ -71,6 +71,17 @@ def extract_pages(pdf_path: str) -> list[tuple[int, str]]:
     return pages
 
 
+def extract_chinese_only(text: str) -> str:
+    """Keep only lines that contain at least one CJK character, discarding English/Serbian explanations."""
+    result = []
+    for line in text.splitlines():
+        if any('\u4e00' <= ch <= '\u9fff' or '\u3400' <= ch <= '\u4dbf' for ch in line):
+            stripped = line.strip()
+            if stripped:
+                result.append(stripped)
+    return "\n".join(result)
+
+
 # ── chunking ──────────────────────────────────────────────────────────────────
 
 def chunk_text(text: str) -> list[str]:
@@ -127,6 +138,14 @@ def delete_source(source: str):
         conn.commit()
 
 
+def clear_all_chunks():
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM course_chunks")
+        conn.commit()
+    print("All course chunks deleted from the database.")
+
+
 def store_rows(rows: list[dict]):
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -157,11 +176,13 @@ def ingest_pdf(pdf_path: str, force: bool = False):
     pages = extract_pages(pdf_path)
     print(f"  {len(pages)} pages with text")
 
-    # 2. Chunk each page
+    # 2. Extract Chinese-only text and chunk each page
     all_chunks = []
     for page_num, page_text in pages:
-        for chunk in chunk_text(page_text):
-            all_chunks.append({"page_num": page_num, "text": chunk})
+        chinese_text = extract_chinese_only(page_text)
+        if chinese_text:
+            for chunk in chunk_text(chinese_text):
+                all_chunks.append({"page_num": page_num, "text": chunk})
     print(f"  {len(all_chunks)} chunks created (~{CHUNK_WORDS} words each)")
 
     if not all_chunks:
@@ -193,6 +214,7 @@ def main():
     parser = argparse.ArgumentParser(description="Ingest PDF course materials into pgvector")
     parser.add_argument("pdfs", nargs="+", help="PDF file paths to ingest")
     parser.add_argument("--force", action="store_true", help="Re-ingest files already in DB")
+    parser.add_argument("--clear-all", action="store_true", help="Delete ALL existing chunks before ingesting")
     args = parser.parse_args()
 
     missing_env = [v for v in ("DATABASE_URL", "OPENAI_API_KEY") if not os.getenv(v)]
@@ -202,6 +224,9 @@ def main():
         sys.exit(1)
 
     init_table()
+
+    if args.clear_all:
+        clear_all_chunks()
 
     for pdf_path in args.pdfs:
         if not os.path.exists(pdf_path):

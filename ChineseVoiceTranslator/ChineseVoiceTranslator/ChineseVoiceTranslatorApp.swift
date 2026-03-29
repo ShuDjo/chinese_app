@@ -29,7 +29,7 @@ struct ChineseVoiceTranslatorApp: App {
                 ContentView()
                     .tabItem { Label("Translate", systemImage: "mic.fill") }
                 QuizView()
-                    .tabItem { Label("Quiz", systemImage: "list.bullet.clipboard") }
+                    .tabItem { Label("Exam", systemImage: "graduationcap") }
                 CharacterView()
                     .tabItem { Label("Characters", systemImage: "character") }
                 FlashcardView()

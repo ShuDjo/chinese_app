@@ -10,8 +10,8 @@ class QuizSpeaker: NSObject, ObservableObject {
     func speak(_ text: String) {
         synthesizer.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = 0.4
+        utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN")
+        utterance.rate = 0.45
         synthesizer.speak(utterance)
     }
 
@@ -23,7 +23,7 @@ class QuizSpeaker: NSObject, ObservableObject {
 // MARK: - Quiz View
 
 enum QuizMode: Equatable {
-    case custom, random, recent
+    case custom, random, lesson
 }
 
 struct QuizView: View {
@@ -32,6 +32,7 @@ struct QuizView: View {
     @State private var quizMode: QuizMode = .custom
     @State private var sources: [String]? = nil
     @State private var availableLessons: [LessonInfo] = []
+    @State private var selectedLesson: LessonInfo? = nil
     @State private var isLoadingLessons = false
 
     // Session
@@ -85,7 +86,7 @@ struct QuizView: View {
                         endPoint: .bottomTrailing
                     )
                     // Watermark
-                    Text("问")
+                    Text("考")
                         .font(.system(size: 130, weight: .black))
                         .foregroundColor(Color.white.opacity(0.08))
                         .offset(x: 70, y: 8)
@@ -97,10 +98,10 @@ struct QuizView: View {
                             .padding(.leading, 12)
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {
-                            Text("XuéBàn")
+                            Text("KǎoShì")
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundColor(.white)
-                            Text("Test your Chinese skills")
+                            Text("Chinese Examination Simulator")
                                 .font(.subheadline)
                                 .foregroundColor(Color.white.opacity(0.75))
                         }
@@ -122,11 +123,11 @@ struct QuizView: View {
                                 .foregroundColor(Theme.red)
                                 .frame(width: 28)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Practice speaking with AI-guided questions")
+                                Text("AI-powered Chinese oral examination")
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)
-                                Text("Pick a topic or draw from your saved vocabulary. Speak your answers in Chinese — the AI evaluates your session and gives you a detailed score, strengths, and improvement tips.")
+                                Text("Select a lesson or topic. The AI examiner asks all questions in Chinese, adapts to your answers, and evaluates your performance at the end with a detailed score and feedback.")
                                     .font(.footnote)
                                     .foregroundColor(.black)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -156,29 +157,57 @@ struct QuizView: View {
                                 pickRandom()
                             }
                             quickPickButton(
-                                title: "Recent Lessons",
-                                icon: "clock.fill",
-                                mode: .recent,
+                                title: "By Lesson",
+                                icon: "book.fill",
+                                mode: .lesson,
                                 isLoading: isLoadingLessons && availableLessons.isEmpty
                             ) {
-                                pickRecent()
+                                quizMode = .lesson
                             }
                         }
 
-                        if quizMode == .recent, let sources = sources {
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(sources, id: \.self) { s in
-                                    Label(s.replacingOccurrences(of: ".pdf", with: ""),
-                                          systemImage: "doc.text.fill")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
                         if quizMode == .random, !topic.isEmpty {
                             Label(topic, systemImage: "shuffle")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+                        }
+
+                        if quizMode == .lesson {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Select a lesson:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                ScrollView {
+                                    VStack(spacing: 4) {
+                                        ForEach(availableLessons, id: \.source) { lesson in
+                                            Button {
+                                                pickLesson(lesson)
+                                            } label: {
+                                                HStack {
+                                                    Text(formatLessonName(lesson.source))
+                                                        .font(.callout)
+                                                        .foregroundColor(selectedLesson?.source == lesson.source ? .white : .primary)
+                                                    Spacer()
+                                                    if selectedLesson?.source == lesson.source {
+                                                        Image(systemName: "checkmark")
+                                                            .foregroundColor(.white)
+                                                    }
+                                                }
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 8)
+                                                .background(selectedLesson?.source == lesson.source ? Theme.red : Color(UIColor.secondarySystemBackground))
+                                                .cornerRadius(8)
+                                            }
+                                        }
+                                    }
+                                }
+                                .frame(maxHeight: 200)
+                                if let lesson = selectedLesson {
+                                    Label("Covers all material up to \(formatLessonName(lesson.source))", systemImage: "info.circle")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
                     }
                     .padding(16)
@@ -215,7 +244,7 @@ struct QuizView: View {
                     if isLoadingQuestion {
                         HStack(spacing: 10) {
                             ProgressView()
-                            Text("Loading first question…")
+                            Text("Preparing examination…")
                                 .font(.callout)
                                 .foregroundColor(.secondary)
                         }
@@ -226,7 +255,7 @@ struct QuizView: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill")
-                                Text("Start Quiz")
+                                Text("Begin Exam")
                                     .fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)
@@ -513,7 +542,7 @@ struct QuizView: View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
-                    Text("Session Complete")
+                    Text("Exam Complete")
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.top, 12)
@@ -669,21 +698,27 @@ struct QuizView: View {
         }
     }
 
+    func formatLessonName(_ source: String) -> String {
+        source
+            .replacingOccurrences(of: ".pdf", with: "")
+            .replacingOccurrences(of: "course", with: "Course ", options: .caseInsensitive)
+            .replacingOccurrences(of: "_", with: " · Lesson ")
+    }
+
     func pickRandom() {
         guard !availableLessons.isEmpty else { return }
         let lesson = availableLessons.randomElement()!
-        let name = lesson.source.replacingOccurrences(of: ".pdf", with: "")
         quizMode = .random
-        topic = name
+        selectedLesson = nil
+        topic = formatLessonName(lesson.source)
         sources = [lesson.source]
     }
 
-    func pickRecent() {
-        let recent = Array(availableLessons.prefix(2))
-        guard !recent.isEmpty else { return }
-        quizMode = .recent
-        sources = recent.map { $0.source }
-        topic = recent.map { $0.source.replacingOccurrences(of: ".pdf", with: "") }.joined(separator: " & ")
+    func pickLesson(_ lesson: LessonInfo) {
+        selectedLesson = lesson
+        quizMode = .lesson
+        sources = [lesson.source]
+        topic = formatLessonName(lesson.source)
     }
 
     func beginSession() {
@@ -773,6 +808,7 @@ struct QuizView: View {
         topic = ""
         quizMode = .custom
         sources = nil
+        selectedLesson = nil
         sessionActive = false
         sessionEnded = false
         currentQuestion = ""

@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import re
 import tempfile
 import urllib.parse
 
@@ -280,39 +281,72 @@ def _history_text(history: list[QuizHistoryItem]) -> str:
     return "\n".join(f"Q: {h.question}\nA: {h.answer}" for h in history)
 
 
+async def _get_cumulative_sources(selected_source: str) -> list[str]:
+    """Return all lesson sources up to and including selected_source, sorted by lesson order."""
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT DISTINCT source FROM course_chunks")
+    all_sources = [r["source"] for r in rows]
+
+    def sort_key(s: str) -> list[int]:
+        return [int(n) for n in re.findall(r'\d+', s)]
+
+    sorted_sources = sorted(all_sources, key=sort_key)
+
+    if selected_source not in sorted_sources:
+        return [selected_source]
+    idx = sorted_sources.index(selected_source)
+    return sorted_sources[:idx + 1]
+
+
 @app.get("/quiz/lessons")
 async def quiz_lessons():
-    """Return all ingested lesson sources sorted by most recently added."""
+    """Return all ingested lesson sources sorted by lesson order."""
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             "SELECT source, MAX(created_at) AS added_at "
-            "FROM course_chunks GROUP BY source ORDER BY added_at DESC"
+            "FROM course_chunks GROUP BY source"
         )
+
+    def sort_key(s: str) -> list[int]:
+        return [int(n) for n in re.findall(r'\d+', s["source"])]
+
+    sorted_rows = sorted(rows, key=sort_key)
     return JSONResponse({
         "lessons": [
             {"source": row["source"], "added_at": row["added_at"].isoformat()}
-            for row in rows
+            for row in sorted_rows
         ]
     })
 
 
 @app.post("/quiz/start")
 async def quiz_start(req: QuizStartRequest):
-    """Generate the first question for a quiz session."""
-    chunks = await _retrieve_chunks(req.topic, k=5, sources=req.sources)
+    """Generate the first question for an exam session."""
+    effective_sources = req.sources
+    if req.sources and len(req.sources) == 1:
+        effective_sources = await _get_cumulative_sources(req.sources[0])
+
+    chunks = await _retrieve_chunks(req.topic, k=7, sources=effective_sources)
     context = "\n\n---\n\n".join(chunks)
 
     completion = await client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a Chinese language teacher. Return only valid JSON."},
-            {"role": "user", "content": f"""Based on this course material about "{req.topic}", ask ONE opening quiz question.
-It can test vocabulary, grammar, translation, or comprehension.
-Be specific and grounded in the material.
-Return JSON with key "question".
+            {"role": "system", "content": (
+                "你是一位严格的中文考官，正在进行口试。"
+                "你只能用中文提问，绝对不能使用英语或塞尔维亚语。"
+                "提问方式要多样化，例如：翻译句子、填空、完成对话、描述场景、"
+                "纠正语法错误、用指定词造句、回答理解问题等。"
+                "所有问题必须基于提供的课程材料。"
+                "只返回有效的JSON格式，键为'question'。"
+            )},
+            {"role": "user", "content": f"""课程材料如下：
 
-Course material:
-{context}"""},
+{context}
+
+考试主题：{req.topic}
+
+请用中文提出第一道考题。"""},
         ],
         response_format={"type": "json_object"},
     )
@@ -323,24 +357,35 @@ Course material:
 @app.post("/quiz/next")
 async def quiz_next(req: QuizSessionRequest):
     """Generate the next question based on the conversation so far."""
-    chunks = await _retrieve_chunks(req.topic, k=5, sources=req.sources)
+    effective_sources = req.sources
+    if req.sources and len(req.sources) == 1:
+        effective_sources = await _get_cumulative_sources(req.sources[0])
+
+    chunks = await _retrieve_chunks(req.topic, k=7, sources=effective_sources)
     context = "\n\n---\n\n".join(chunks)
 
     completion = await client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a Chinese language teacher. Return only valid JSON."},
-            {"role": "user", "content": f"""You are conducting a conversational quiz on: "{req.topic}"
+            {"role": "system", "content": (
+                "你是一位严格的中文考官。所有问题必须只用中文，绝不使用英语或塞尔维亚语。"
+                "根据学生的上一个回答来调整难度："
+                "如果回答正确，则加大难度或探索相关概念；"
+                "如果回答错误或不完整，则换一种方式提问同一知识点，或适当降低难度。"
+                "提问方式要有创意（填空、角色扮演、纠错、造句等）。"
+                "所有问题必须基于提供的课程材料。"
+                "只返回有效的JSON格式，键为'question'。"
+            )},
+            {"role": "user", "content": f"""课程材料如下：
 
-Course material:
 {context}
 
-Conversation so far:
+考试主题：{req.topic}
+
+对话记录：
 {_history_text(req.history)}
 
-Ask the next question. If the student answered well, move to a related concept.
-If they struggled, ask a simpler follow-up on the same point.
-Stay grounded in the course material. Return JSON with key "question"."""},
+请用中文提出下一道考题。"""},
         ],
         response_format={"type": "json_object"},
     )
@@ -357,22 +402,22 @@ async def quiz_finish(req: QuizSessionRequest):
     completion = await client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a Chinese language teacher. Return only valid JSON."},
-            {"role": "user", "content": f"""Evaluate this student's quiz session on: "{req.topic}"
+            {"role": "system", "content": "You are a strict Chinese language examiner. Evaluate honestly and precisely. Return only valid JSON."},
+            {"role": "user", "content": f"""Evaluate this student's Chinese examination on: "{req.topic}"
 
 Full conversation:
 {_history_text(req.history)}
 
 Return JSON with:
 - "overall_score": integer 0-100
-- "summary": 2-3 sentence overall assessment
-- "strengths": array of 2-3 specific things done well
-- "improvements": array of 2-3 specific areas to work on
+- "summary": 2-3 sentence assessment of the student's Chinese proficiency demonstrated in this exam
+- "strengths": array of 2-3 specific strengths observed (e.g. correct tones, accurate vocabulary, good sentence structure)
+- "improvements": array of 2-3 specific areas needing improvement
 - "exchanges": array of objects, one per Q&A pair, each with:
   - "question": the question asked
   - "answer": the student's answer
   - "score": integer 0-100 for that specific answer
-  - "mistake": null if the answer was good, otherwise a specific description of what was wrong (e.g. wrong tone, wrong measure word, missing grammar point)"""},
+  - "mistake": null if the answer was good, otherwise a specific description of what was wrong (e.g. wrong tone, wrong measure word, missing grammar point, incorrect character)"""},
         ],
         response_format={"type": "json_object"},
     )
@@ -402,7 +447,7 @@ async def quiz_transcribe(file: UploadFile = File(...)):
             transcription = await client.audio.transcriptions.create(
                 model="gpt-4o-mini-transcribe",
                 file=audio_file,
-                # no language= → auto-detect, supports both Chinese and English answers
+                language="zh",
             )
         return JSONResponse({"text": transcription.text})
     except Exception as e:
