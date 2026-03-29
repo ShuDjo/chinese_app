@@ -210,6 +210,19 @@ class APIClient {
         }.resume()
     }
 
+    // Exam: translate current question as a hint (no DB writes)
+    func translateHint(text: String, completion: @escaping (String?, String?) -> Void) {
+        postJSON("\(base)/exam/hint", body: ["text": text]) { data, err in
+            guard let data = data else { completion(nil, err); return }
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let translation = json["translation"] as? String {
+                completion(translation, nil)
+            } else {
+                completion(nil, "Decode error")
+            }
+        }
+    }
+
     // Shared helper for JSON POST requests
     private func postJSON(_ urlString: String, body: [String: Any], completion: @escaping (Data?, String?) -> Void) {
         var request = URLRequest(url: URL(string: urlString)!)

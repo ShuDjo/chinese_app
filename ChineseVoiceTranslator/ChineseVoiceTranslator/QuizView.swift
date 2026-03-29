@@ -51,6 +51,11 @@ struct QuizView: View {
     @State private var isEvaluating = false
     @State private var sessionEnded = false
 
+    // Hint
+    @State private var hintTranslation = ""
+    @State private var hintVisible = false
+    @State private var isLoadingHint = false
+
     // Results
     @State private var evaluation: SessionEvaluation?
 
@@ -425,6 +430,53 @@ struct QuizView: View {
                             insertion: .move(edge: .bottom).combined(with: .opacity),
                             removal: .opacity
                         ))
+
+                        // Hint button & translation
+                        HStack {
+                            Spacer()
+                            if isLoadingHint {
+                                ProgressView().scaleEffect(0.8)
+                            } else if hintVisible, !hintTranslation.isEmpty {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "eye.slash")
+                                        .font(.caption)
+                                    Text("Hide translation")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(.secondary)
+                                .onTapGesture { hintVisible = false }
+                            } else {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "eye")
+                                        .font(.caption)
+                                    Text("Reveal translation")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(.secondary)
+                                .onTapGesture { loadHint() }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+
+                        if hintVisible, !hintTranslation.isEmpty {
+                            HStack(spacing: 8) {
+                                Image(systemName: "lightbulb.fill")
+                                    .foregroundColor(Theme.gold)
+                                Text(hintTranslation)
+                                    .font(.callout)
+                                    .foregroundColor(.primary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(14)
+                            .background(Theme.gold.opacity(0.12))
+                            .cornerRadius(12)
+                            .padding(.horizontal, 16)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .top).combined(with: .opacity),
+                                removal: .opacity
+                            ))
+                        }
                     }
 
                     // Pending answer preview
@@ -484,6 +536,11 @@ struct QuizView: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isLoadingQuestion)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: pendingAnswer)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isTranscribing)
+                .animation(.easeInOut(duration: 0.25), value: hintVisible)
+                .onChange(of: currentQuestion) { _ in
+                    hintTranslation = ""
+                    hintVisible = false
+                }
             }
             .scrollIndicators(.hidden)
 
@@ -740,6 +797,21 @@ struct QuizView: View {
                     currentQuestion = q
                     sessionActive = true
                     speaker.speak(q)
+                }
+            }
+        }
+    }
+
+    func loadHint() {
+        guard !currentQuestion.isEmpty, !isLoadingHint else { return }
+        if !hintTranslation.isEmpty { hintVisible = true; return }
+        isLoadingHint = true
+        api.translateHint(text: currentQuestion) { translation, _ in
+            DispatchQueue.main.async {
+                isLoadingHint = false
+                if let t = translation {
+                    hintTranslation = t
+                    hintVisible = true
                 }
             }
         }

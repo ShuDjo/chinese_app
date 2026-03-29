@@ -598,3 +598,14 @@ async def translate_text(req: TranslateRequest, background_tasks: BackgroundTask
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {e}")
+
+
+class HintRequest(BaseModel):
+    text: str
+
+
+@app.post("/exam/hint")
+async def exam_hint(req: HintRequest):
+    """Translate an exam question to English without saving anything to the database."""
+    translation = await _translate_sentence(req.text)
+    return JSONResponse({"translation": translation})
