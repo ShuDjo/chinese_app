@@ -437,26 +437,21 @@ struct QuizView: View {
                             if isLoadingHint {
                                 ProgressView().scaleEffect(0.8)
                             } else if hintVisible, !hintTranslation.isEmpty {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "eye.slash")
+                                Button { hintVisible = false } label: {
+                                    Label("Hide translation", systemImage: "eye.slash")
                                         .font(.caption)
-                                    Text("Hide translation")
-                                        .font(.caption)
+                                        .foregroundColor(Theme.gold)
                                 }
-                                .foregroundColor(.secondary)
-                                .onTapGesture { hintVisible = false }
                             } else {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "eye")
+                                Button { loadHint() } label: {
+                                    Label("Reveal translation", systemImage: "eye")
                                         .font(.caption)
-                                    Text("Reveal translation")
-                                        .font(.caption)
+                                        .foregroundColor(Theme.gold)
                                 }
-                                .foregroundColor(.secondary)
-                                .onTapGesture { loadHint() }
                             }
                         }
                         .padding(.horizontal, 20)
+                        .padding(.top, 4)
 
                         if hintVisible, !hintTranslation.isEmpty {
                             HStack(spacing: 8) {
