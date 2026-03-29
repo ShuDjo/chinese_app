@@ -298,6 +298,27 @@ async def _get_cumulative_sources(selected_source: str) -> list[str]:
     return sorted_sources[:idx + 1]
 
 
+async def _build_exam_context(topic: str, selected_source: str) -> str:
+    """
+    Build a two-section context for lesson-based exams:
+    - Primary: chunks from the selected lesson (exam questions should focus here)
+    - Background: chunks from all prior lessons (student already knows this)
+    """
+    all_up_to = await _get_cumulative_sources(selected_source)
+    prior_sources = [s for s in all_up_to if s != selected_source]
+
+    primary_chunks = await _retrieve_chunks(topic, k=6, sources=[selected_source])
+    primary_section = "## Current Lesson Material (focus exam questions on this vocabulary and topics):\n" + "\n\n".join(primary_chunks)
+
+    if not prior_sources:
+        return primary_section
+
+    background_chunks = await _retrieve_chunks(topic, k=3, sources=prior_sources)
+    background_section = "## Previously Learned Material (student already knows this — treat as background knowledge, do not make it the focus):\n" + "\n\n".join(background_chunks)
+
+    return primary_section + "\n\n" + background_section
+
+
 @app.get("/quiz/lessons")
 async def quiz_lessons():
     """Return all ingested lesson sources sorted by lesson order."""
@@ -322,12 +343,12 @@ async def quiz_lessons():
 @app.post("/quiz/start")
 async def quiz_start(req: QuizStartRequest):
     """Generate the first question for an exam session."""
-    effective_sources = req.sources
     if req.sources and len(req.sources) == 1:
-        effective_sources = await _get_cumulative_sources(req.sources[0])
-
-    chunks = await _retrieve_chunks(req.topic, k=7, sources=effective_sources)
-    context = "\n\n---\n\n".join(chunks)
+        context = await _build_exam_context(req.topic, req.sources[0])
+    else:
+        effective_sources = req.sources
+        chunks = await _retrieve_chunks(req.topic, k=7, sources=effective_sources)
+        context = "\n\n".join(chunks)
 
     completion = await client.chat.completions.create(
         model="gpt-4o-mini",
@@ -366,12 +387,12 @@ Start the oral examination with a natural opening question in Chinese."""},
 @app.post("/quiz/next")
 async def quiz_next(req: QuizSessionRequest):
     """Generate the next question based on the conversation so far."""
-    effective_sources = req.sources
     if req.sources and len(req.sources) == 1:
-        effective_sources = await _get_cumulative_sources(req.sources[0])
-
-    chunks = await _retrieve_chunks(req.topic, k=7, sources=effective_sources)
-    context = "\n\n---\n\n".join(chunks)
+        context = await _build_exam_context(req.topic, req.sources[0])
+    else:
+        effective_sources = req.sources
+        chunks = await _retrieve_chunks(req.topic, k=7, sources=effective_sources)
+        context = "\n\n".join(chunks)
 
     completion = await client.chat.completions.create(
         model="gpt-4o-mini",
