@@ -281,16 +281,23 @@ def _history_text(history: list[QuizHistoryItem]) -> str:
     return "\n".join(f"Q: {h.question}\nA: {h.answer}" for h in history)
 
 
+def _lesson_sort_key(source: str) -> tuple[int, int]:
+    """Parse 'course1_10.pdf' → (1, 10) for correct numeric sort order."""
+    nums = re.findall(r'\d+', source)
+    if len(nums) >= 2:
+        return (int(nums[0]), int(nums[1]))
+    if len(nums) == 1:
+        return (int(nums[0]), 0)
+    return (0, 0)
+
+
 async def _get_cumulative_sources(selected_source: str) -> list[str]:
     """Return all lesson sources up to and including selected_source, sorted by lesson order."""
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT DISTINCT source FROM course_chunks")
     all_sources = [r["source"] for r in rows]
 
-    def sort_key(s: str) -> list[int]:
-        return [int(n) for n in re.findall(r'\d+', s)]
-
-    sorted_sources = sorted(all_sources, key=sort_key)
+    sorted_sources = sorted(all_sources, key=_lesson_sort_key)
 
     if selected_source not in sorted_sources:
         return [selected_source]
@@ -328,10 +335,7 @@ async def quiz_lessons():
             "FROM course_chunks GROUP BY source"
         )
 
-    def sort_key(s: str) -> list[int]:
-        return [int(n) for n in re.findall(r'\d+', s["source"])]
-
-    sorted_rows = sorted(rows, key=sort_key)
+    sorted_rows = sorted(rows, key=lambda r: _lesson_sort_key(r["source"]))
     return JSONResponse({
         "lessons": [
             {"source": row["source"], "added_at": row["added_at"].isoformat()}
