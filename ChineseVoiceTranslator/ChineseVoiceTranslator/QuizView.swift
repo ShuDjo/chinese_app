@@ -8,6 +8,12 @@ class QuizSpeaker: NSObject, ObservableObject {
     private let synthesizer = AVSpeechSynthesizer()
 
     func speak(_ text: String) {
+        // Reset audio session to playback so the speaker volume stays full
+        // after the recording session (which routes to earpiece by default)
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default)
+        try? session.setActive(true)
+
         synthesizer.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN")
@@ -459,7 +465,7 @@ struct QuizView: View {
                                     .foregroundColor(Theme.gold)
                                 Text(hintTranslation)
                                     .font(.callout)
-                                    .foregroundColor(.primary)
+                                    .foregroundColor(.black)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
