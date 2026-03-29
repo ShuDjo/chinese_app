@@ -698,10 +698,11 @@ struct QuizView: View {
         }
     }
 
-    func lessonSortKey(_ source: String) -> [Int] {
-        // Extract all digit sequences so "course1_10.pdf" → [1, 10], "course2_3.pdf" → [2, 3]
-        source.components(separatedBy: CharacterSet.decimalDigits.inverted)
+    func lessonSortKey(_ source: String) -> (Int, Int) {
+        // Extract digit sequences: "course1_10.pdf" → (1, 10), "course2_3.pdf" → (2, 3)
+        let nums = source.components(separatedBy: CharacterSet.decimalDigits.inverted)
             .compactMap { Int($0) }
+        return (nums.count > 0 ? nums[0] : 0, nums.count > 1 ? nums[1] : 0)
     }
 
     func formatLessonName(_ source: String) -> String {
