@@ -22,7 +22,7 @@ Simulate a real Chinese oral exam with an AI examiner:
 - **Custom Topic** — enter any subject (e.g. "food", "travel", "measure words")
 - The AI examiner asks all questions **in Chinese only**, adapts to your answers, and avoids translation tasks
 - Your spoken answer is transcribed and evaluated in real time
-- At the end you receive an **overall score (0–100), strengths, areas to improve, and per-question feedback**
+- At the end you receive an **overall score (0–100), strengths, areas to improve, and per-question feedback** — delivered in the app's current language (English, Serbian Cyrillic, or Serbian Latin)
 
 ### Characters Tab — Character Lookup
 Search by English word, Serbian word, Pinyin, or Chinese characters to get:
