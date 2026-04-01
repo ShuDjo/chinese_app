@@ -156,10 +156,11 @@ class APIClient {
     }
 
     // Quiz: finish session and get evaluation
-    func finishQuiz(topic: String, history: [HistoryItem], sources: [String]? = nil, completion: @escaping (SessionEvaluation?, String?) -> Void) {
+    func finishQuiz(topic: String, history: [HistoryItem], sources: [String]? = nil, language: String = "en", completion: @escaping (SessionEvaluation?, String?) -> Void) {
         var payload: [String: Any] = [
             "topic": topic,
-            "history": history.map { ["question": $0.question, "answer": $0.answer] }
+            "history": history.map { ["question": $0.question, "answer": $0.answer] },
+            "language": language
         ]
         if let sources = sources { payload["sources"] = sources }
         postJSON("\(base)/quiz/finish", body: payload) { data, err in

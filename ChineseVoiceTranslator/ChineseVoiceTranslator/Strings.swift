@@ -33,18 +33,18 @@ struct Strings {
 
     var translateSubtitle: String { switch lang {
         case .english: return "Speak. Transcribe. Learn."
-        case .serbianCyrillic: return "Говори. Транскрибуј. Учи."
-        case .serbianLatin: return "Govori. Transkribuj. Uči." } }
+        case .serbianCyrillic: return "Говори. Забележи. Учи."
+        case .serbianLatin: return "Govori. Zabeleži. Uči." } }
 
     var translateBannerTitle: String { switch lang {
         case .english: return "Record, transcribe & build your vocabulary"
-        case .serbianCyrillic: return "Снимај, транскрибуј и гради речник"
-        case .serbianLatin: return "Snimi, transkribuj i gradi rečnik" } }
+        case .serbianCyrillic: return "Снимај, забележи и гради речник"
+        case .serbianLatin: return "Snimi, зabeleži i gradi rečnik" } }
 
     var translateBannerBody: String { switch lang {
-        case .english: return "Speak any Chinese sentence and get an instant word-by-word breakdown with translations and pinyin. Tap a word to watch its stroke order animation. Hit Accept & Save to add new words to your personal vocabulary."
-        case .serbianCyrillic: return "Изговори кинеску реченицу и добиј тренутни разлог речи по реч са преводима и пинјином. Додирни реч да видиш анимацију редоследа потеза. Притисни Прихвати и сачувај да додаш нове речи у свој речник."
-        case .serbianLatin: return "Izgovori kinesku rečenicu i dobij trenutni razboj reči po reč sa prevodima i pinjinom. Dodirni reč da vidiš animaciju redosleda poteza. Pritisni Prihvati i sačuvaj da dodaš nove reči u svoj rečnik." } }
+        case .english: return "Speak any Chinese sentence and get an instant word-by-word breakdown with translations and pinyin. Or switch to text mode and type in English, Serbian, or pinyin to look up any word. Tap a word to watch its stroke order animation. Hit Accept & Save to add new words to your personal vocabulary."
+        case .serbianCyrillic: return "Реци bilo коју реченицу на кинеском и добићеш одмах све речи издвојене, са преводима и пињином. Или пређи на унос текста и куцај на енглеском, српском или пинјину да потражиш bilo коју реч. Додирни реч да видиш анимацију редоследа потеза. Притисни Прихвати и сачувај да додаш нове речи у свој речник."
+        case .serbianLatin: return "Reci bilo koju rečenicu na kineskom i dobićeš odmah sve reči izdvojene, sa prevodima i pinjinom. Ili pređi na unos teksta i kucaj na engleskom, srpskom ili pinjinu da potražiš bilo koju reč. Dodirni reč da vidiš animaciju redosleda poteza. Pritisni Prihvati i sačuvaj da dodaš nove reči u svoj rečnik." } }
 
     var modeMic: String { switch lang {
         case .english: return "Mic"
@@ -53,13 +53,13 @@ struct Strings {
 
     var modeType: String { switch lang {
         case .english: return "Type"
-        case .serbianCyrillic: return "Уноси"
-        case .serbianLatin: return "Unosi" } }
+        case .serbianCyrillic: return "Унeси"
+        case .serbianLatin: return "Unesi" } }
 
     var transcribing: String { switch lang {
         case .english: return "Transcribing…"
-        case .serbianCyrillic: return "Транскрибовање…"
-        case .serbianLatin: return "Transkribovanje…" } }
+        case .serbianCyrillic: return "Забележавање…"
+        case .serbianLatin: return "Zabeležavanje…" } }
 
     var lookingUp: String { switch lang {
         case .english: return "Looking up…"
@@ -209,9 +209,9 @@ struct Strings {
         case .serbianLatin: return "Tvoj odgovor" } }
 
     var evaluatingSession: String { switch lang {
-        case .english: return "Evaluating session…"
-        case .serbianCyrillic: return "Евалуација сесије…"
-        case .serbianLatin: return "Evaluacija sesije…" } }
+        case .english: return "Evaluating answers…"
+        case .serbianCyrillic: return "Евалуација одговора…"
+        case .serbianLatin: return "Evaluacija odgovora…" } }
 
     var stopAndEvaluate: String { switch lang {
         case .english: return "Stop & Evaluate"
@@ -251,9 +251,9 @@ struct Strings {
     // MARK: - CharacterView
 
     var characterSubtitle: String { switch lang {
-        case .english: return "Look up stroke animations"
-        case .serbianCyrillic: return "Претражи анимације потеза"
-        case .serbianLatin: return "Pretraži animacije poteza" } }
+        case .english: return "Look up stroke order and see animations"
+        case .serbianCyrillic: return "Претражи редослед потеза и погледај анимације"
+        case .serbianLatin: return "Pretraži redosled poteza i pogledaj animacije" } }
 
     var characterBannerTitle: String { switch lang {
         case .english: return "Look up any character & learn its strokes"
@@ -261,9 +261,9 @@ struct Strings {
         case .serbianLatin: return "Potraži znak i nauči redosled poteza" } }
 
     var characterBannerBody: String { switch lang {
-        case .english: return "Search by English word, pinyin, or Chinese characters to instantly see the meaning, pronunciation, and an animated stroke-by-stroke drawing of every character."
-        case .serbianCyrillic: return "Претражи по енглеској речи, пинјину или кинеском знаку и одмах види значење, изговор и анимовани цртеж сваког знака потез по потез."
-        case .serbianLatin: return "Pretraži po engleskoj reči, pinjinu ili kineskom znaku i odmah vidi značenje, izgovor i animovani crtež svakog znaka potez po potez." } }
+        case .english: return "Search by English word, Serbian word, pinyin, or Chinese characters to instantly see the meaning, pronunciation, and an animated stroke-by-stroke drawing of every character."
+        case .serbianCyrillic: return "Претражи по енглеској или српској речи, пинјину или кинеском знаку и одмах види значење, изговор и анимирани цртеж сваког знака потез по потез."
+        case .serbianLatin: return "Pretraži po engleskoj ili srpskoj reči, pinjinu ili kineskom znaku i odmah vidi značenje, izgovor i animirani crtež svakog znaka potez po potez." } }
 
     var englishPinyinOrChinese: String { switch lang {
         case .english: return "English, Serbian, Pinyin, or Chinese"
@@ -293,9 +293,9 @@ struct Strings {
         case .serbianLatin: return "Testiraj se na sačuvanom rečniku" } }
 
     var flashcardBannerBody: String { switch lang {
-        case .english: return "A random character from your vocabulary is shown — type its English meaning or pinyin to test your memory. Use Show Answer if you're stuck, then move on to keep the streak going."
-        case .serbianCyrillic: return "Приказује се случајни знак из твог речника — унеси значење на енглеском или пинјин да тестираш памћење. Употреби Прикажи одговор ако заглавиш, па настави."
-        case .serbianLatin: return "Prikazuje se slučajni znak iz tvog rečnika — unesi značenje na engleskom ili pinjin da testiraš pamćenje. Upotrebi Prikaži odgovor ako zaglaviš, pa nastavi." } }
+        case .english: return "A random character from your vocabulary is shown — type its English meaning, Serbian meaning, or pinyin to test your memory. Use Show Answer if you're stuck, then move on to keep the streak going."
+        case .serbianCyrillic: return "Приказује се случајни знак из твог речника — унеси значење на енглеском, српском или пинјин да тестираш памћење. Употреби Прикажи одговор ако заглавиш, па настави."
+        case .serbianLatin: return "Prikazuje se slučajni znak iz tvog rečnika — unesi značenje na engleskom, srpskom ili pinjin da testiraš pamćenje. Upotrebi Prikaži odgovor ako zaglaviš, pa nastavi." } }
 
     var whatDoesThisMean: String { switch lang {
         case .english: return "What does this mean?"

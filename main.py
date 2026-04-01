@@ -301,6 +301,7 @@ class QuizSessionRequest(BaseModel):
     topic: str
     history: list[QuizHistoryItem]
     sources: list[str] | None = None
+    language: str = "en"
 
 
 def _history_text(history: list[QuizHistoryItem]) -> str:
@@ -462,11 +463,18 @@ async def quiz_finish(req: QuizSessionRequest):
     if not req.history:
         raise HTTPException(status_code=400, detail="No conversation to evaluate")
 
+    if req.language == "sr-Cyrl":
+        eval_lang_instruction = "Write ALL evaluation text in Serbian using Cyrillic script (ћирилица). "
+    elif req.language == "sr-Latn":
+        eval_lang_instruction = "Write ALL evaluation text in Serbian using Latin script (latinica). "
+    else:
+        eval_lang_instruction = "Write ALL evaluation text in English. "
+
     async with httpx.AsyncClient() as http:
         content = await _deepseek_chat([
             {"role": "system", "content": (
                 "You are an experienced Chinese oral examiner evaluating a spoken conversation. "
-                "Write ALL evaluation text in English. "
+                + eval_lang_instruction +
                 "The student's answers are speech-to-text transcriptions — they will have no punctuation, "
                 "may have run-on words, and spacing may be imperfect. "
                 "IGNORE all formatting, punctuation, and spacing issues entirely. "

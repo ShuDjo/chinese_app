@@ -878,7 +878,7 @@ struct QuizView: View {
             return
         }
         isEvaluating = true
-        api.finishQuiz(topic: topic, history: history, sources: sources) { eval, err in
+        api.finishQuiz(topic: topic, history: history, sources: sources, language: lang.language.rawValue) { eval, err in
             DispatchQueue.main.async {
                 isEvaluating = false
                 if let err = err { errorMessage = err; return }
