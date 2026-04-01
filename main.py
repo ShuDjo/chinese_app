@@ -572,55 +572,31 @@ class CharacterLookupRequest(BaseModel):
 
 @app.post("/character/lookup")
 async def character_lookup(req: CharacterLookupRequest):
-    """Look up Chinese characters and pinyin by English word or Chinese text."""
+    """Look up a word from the local word_cache dictionary only."""
     query = req.query.strip()
     if not query:
         raise HTTPException(status_code=400, detail="Query is empty")
 
-    # Already Chinese — extract CJK chars, get pinyin/english/serbian via cache or LLM
-    if any(is_cjk(c) for c in query):
-        chars = "".join(c for c in query if is_cjk(c))
-        cached = await get_cached_words([query])
-        if query in cached:
-            return JSONResponse({
-                "characters": chars,
-                "pinyin": cached[query].get("pinyin", ""),
-                "english": cached[query].get("english", ""),
-                "serbian": cached[query].get("serbian") or "",
-            })
-        translated = await _translate_words([query])
-        if translated:
-            t = translated[0]
-            return JSONResponse({
-                "characters": chars,
-                "pinyin": t.get("pinyin", ""),
-                "english": t.get("english", ""),
-                "serbian": t.get("serbian", ""),
-            })
-        return JSONResponse({"characters": chars, "pinyin": "", "english": "", "serbian": ""})
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """SELECT word, pinyin, english, serbian FROM word_cache
+               WHERE word = $1
+                  OR LOWER(english) ILIKE $2
+                  OR LOWER(COALESCE(serbian, '')) ILIKE $2
+                  OR LOWER(pinyin) ILIKE $2
+               LIMIT 1""",
+            query,
+            f"%{query.lower()}%",
+        )
 
-    # English, Serbian, or pinyin input — use LLM to find Chinese characters
-    async with httpx.AsyncClient() as http:
-        content = await _deepseek_chat([
-            {"role": "system", "content": "You are a Chinese-English-Serbian dictionary. Return only valid JSON."},
-            {"role": "user", "content": (
-                f'The user typed: "{query}"\n\n'
-                f'This could be an English or Serbian word/phrase, pinyin (e.g. "ni hao", "xièxiè"), '
-                f'or a romanization. Find the corresponding Chinese characters.\n\n'
-                f'Return JSON with keys:\n'
-                f'- "characters": the Chinese characters (hanzi only)\n'
-                f'- "pinyin": pinyin with tone marks (e.g. nǐ hǎo)\n'
-                f'- "english": the English meaning\n'
-                f'- "serbian": the Serbian translation\n\n'
-                f'Only return the most common/natural match. Never leave "characters" empty.'
-            )},
-        ], http)
-    data = json.loads(content)
+    if not row:
+        raise HTTPException(status_code=404, detail="not_in_dictionary")
+
     return JSONResponse({
-        "characters": data.get("characters", ""),
-        "pinyin": data.get("pinyin", ""),
-        "english": data.get("english", query),
-        "serbian": data.get("serbian", ""),
+        "characters": row["word"],
+        "pinyin":     row["pinyin"] or "",
+        "english":    row["english"],
+        "serbian":    row["serbian"] or "",
     })
 
 

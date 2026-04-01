@@ -43,8 +43,8 @@ struct Strings {
 
     var translateBannerBody: String { switch lang {
         case .english: return "Speak any Chinese sentence and get an instant word-by-word breakdown with translations, pinyin and characters."
-        case .serbianCyrillic: return "Реци bilo коју реченицу на кинеском и добићеш тренутни приказ речи по реч са преводима, пинјином и знаковима."
-        case .serbianLatin: return "Reci bilo koju rečenicu na kineskom i dobićeš trenutni prikaz reči po reč sa prevodima, pinjinom i znakovima." } }
+        case .serbianCyrillic: return "Реци bilo коју реченицу на кинеском и добићеш тренутни приказ речи са преводима, пинјином и знаковима."
+        case .serbianLatin: return "Reci bilo koju rečenicu na kineskom i dobićeš trenutni prikaz reči sa prevodima, pinjinom i znakovima." } }
 
     var translateBannerBodyType: String { switch lang {
         case .english: return "Type any sentence in English, Serbian, or pinyin to get translation, pinyin and characters."
@@ -80,6 +80,11 @@ struct Strings {
         case .english: return "No Chinese detected. Please speak in Chinese."
         case .serbianCyrillic: return "Нису препознате кинеске речи. Говори на кинеском."
         case .serbianLatin: return "Nisu prepoznate kineske reči. Govori na kineskom." } }
+
+    var notInDictionary: String { switch lang {
+        case .english: return "This word is not in your dictionary yet. Save words via the Translate tab to build your collection."
+        case .serbianCyrillic: return "Ова реч још није у твом речнику. Додај речи преко картице Превод да изградиш свој речник."
+        case .serbianLatin: return "Ova reč još nije u tvom rečniku. Dodaj reči preko kartice Prevod da izgradiš svoj rečnik." } }
 
     var lookUp: String { switch lang {
         case .english: return "Look Up"
@@ -273,7 +278,7 @@ struct Strings {
     var characterBannerBody: String { switch lang {
         case .english: return "Search YOUR dictionary by English word, Serbian word, pinyin, or Chinese characters to instantly see the meaning, pronunciation, and an animated stroke-by-stroke drawing of every character."
         case .serbianCyrillic: return "Претражи СВОЈ речник, користећи енглески, српски, пинјин или кинеске знакове и одмах види значење, изговор и анимирани цртеж сваког знака потез по потез."
-        case .serbianLatin: return "Pretraži reč na engleskom ili srpskom, pinjinu ili kineskom znaku i odmah vidi značenje, izgovor i animirani crtež svakog znaka potez po potez." } }
+        case .serbianLatin: return "Pretraži SVOJ rečnik, koristeći engleski, srpski, pinjin ili kineske znakove i odmah vidi značenje, izgovor i animirani crtež svakog znaka potez po potez." } }
 
     var englishPinyinOrChinese: String { switch lang {
         case .english: return "English, Serbian, Pinyin, or Chinese"

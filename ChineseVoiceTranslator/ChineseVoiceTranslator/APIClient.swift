@@ -102,14 +102,17 @@ class APIClient {
         }.resume()
     }
 
-    // Character lookup by English or Chinese
+    // Character lookup — searches local word_cache only
     func lookupCharacter(_ query: String, completion: @escaping (CharacterLookupResult?, String?) -> Void) {
         var request = URLRequest(url: URL(string: "\(base)/character/lookup")!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: ["query": query])
-        URLSession.shared.dataTask(with: request) { data, _, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let err = error { completion(nil, err.localizedDescription); return }
+            if let http = response as? HTTPURLResponse, http.statusCode == 404 {
+                completion(nil, "not_in_dictionary"); return
+            }
             guard let data = data else { completion(nil, "No data"); return }
             do {
                 completion(try JSONDecoder().decode(CharacterLookupResult.self, from: data), nil)

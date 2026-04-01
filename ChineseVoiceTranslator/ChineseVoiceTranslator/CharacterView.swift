@@ -226,6 +226,9 @@ struct CharacterView: View {
         api.lookupCharacter(trimmed) { res, err in
             DispatchQueue.main.async {
                 isLoading = false
+                if err == "not_in_dictionary" {
+                    errorMessage = lang.s.notInDictionary; return
+                }
                 if let err = err { errorMessage = err; return }
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                     result = res
