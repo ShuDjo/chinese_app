@@ -202,7 +202,7 @@ struct ContentView: View {
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
-                                    Text(lang.s.translateBannerBody)
+                                    Text(inputMode == .mic ? lang.s.translateBannerBody : lang.s.translateBannerBodyType)
                                         .font(.footnote)
                                         .foregroundColor(.black)
                                         .fixedSize(horizontal: false, vertical: true)
