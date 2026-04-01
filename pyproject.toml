@@ -9,7 +9,6 @@ dependencies = [
     "jieba>=0.42.1",
     "asyncpg>=0.30.0",
     "httpx>=0.28.0",
-    "openai>=2.8.1",
     "python-multipart>=0.0.20",
     "uvicorn>=0.38.0",
     # ingestion script only

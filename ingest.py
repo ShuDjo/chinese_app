@@ -14,17 +14,17 @@ import sys
 from pathlib import Path
 
 import fitz  # pymupdf
+import httpx
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
-from openai import OpenAI
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+JINA_API_KEY = os.getenv("JINA_API_KEY", "")
 
-EMBED_MODEL = "text-embedding-3-small"
-EMBED_DIM   = 1536
+EMBED_MODEL = "jina-embeddings-v3"
+EMBED_DIM   = 1024
 CHUNK_WORDS = 400   # target words per chunk
 OVERLAP     = 50    # words of overlap between consecutive chunks
 
@@ -106,14 +106,21 @@ def chunk_text(text: str) -> list[str]:
 # ── embeddings ────────────────────────────────────────────────────────────────
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    """Embed texts in batches. OpenAI allows up to 2048 per request."""
+    """Embed texts in batches via Jina AI REST API."""
     BATCH = 512
     embeddings = []
-    for i in range(0, len(texts), BATCH):
-        batch = texts[i : i + BATCH]
-        response = client.embeddings.create(model=EMBED_MODEL, input=batch)
-        embeddings.extend([r.embedding for r in response.data])
-        print(f"  Embedded {min(i + BATCH, len(texts))}/{len(texts)} chunks...")
+    with httpx.Client() as http:
+        for i in range(0, len(texts), BATCH):
+            batch = texts[i : i + BATCH]
+            resp = http.post(
+                "https://api.jina.ai/v1/embeddings",
+                headers={"Authorization": f"Bearer {JINA_API_KEY}"},
+                json={"model": EMBED_MODEL, "input": batch},
+                timeout=60.0,
+            )
+            resp.raise_for_status()
+            embeddings.extend([r["embedding"] for r in resp.json()["data"]])
+            print(f"  Embedded {min(i + BATCH, len(texts))}/{len(texts)} chunks...")
     return embeddings
 
 
@@ -217,7 +224,7 @@ def main():
     parser.add_argument("--clear-all", action="store_true", help="Delete ALL existing chunks before ingesting")
     args = parser.parse_args()
 
-    missing_env = [v for v in ("DATABASE_URL", "OPENAI_API_KEY") if not os.getenv(v)]
+    missing_env = [v for v in ("DATABASE_URL", "JINA_API_KEY") if not os.getenv(v)]
     if missing_env:
         print(f"Error: missing environment variables: {', '.join(missing_env)}", file=sys.stderr)
         print("Create a .env file or export them in your shell.", file=sys.stderr)

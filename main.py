@@ -12,11 +12,13 @@ import httpx
 import jieba
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
-from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 app = FastAPI(title="Chinese Voice Translator")
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+GROQ_API_KEY     = os.getenv("GROQ_API_KEY", "")
+JINA_API_KEY     = os.getenv("JINA_API_KEY", "")
 pool: asyncpg.Pool | None = None
 
 
@@ -144,6 +146,22 @@ def segment_chinese(text: str) -> list[str]:
     return [w.strip() for w in jieba.cut(text) if w.strip() and any(is_cjk(c) for c in w)]
 
 
+async def _deepseek_chat(messages: list[dict], http: httpx.AsyncClient) -> str:
+    """Send a chat request to DeepSeek and return the response content string."""
+    resp = await http.post(
+        "https://api.deepseek.com/chat/completions",
+        headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
+        json={
+            "model": "deepseek-chat",
+            "messages": messages,
+            "response_format": {"type": "json_object"},
+        },
+        timeout=60.0,
+    )
+    resp.raise_for_status()
+    return resp.json()["choices"][0]["message"]["content"]
+
+
 async def _translate_words(words: list[str]) -> list[dict]:
     if not words:
         return []
@@ -152,27 +170,21 @@ Return a JSON object with key "words" containing an array.
 Each element must have: "word", "english", "pinyin" (with tone marks).
 
 Words: {json.dumps(words, ensure_ascii=False)}"""
-    completion = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
+    async with httpx.AsyncClient() as http:
+        content = await _deepseek_chat([
             {"role": "system", "content": "You are a precise Chinese-English dictionary. Return only valid JSON."},
             {"role": "user", "content": prompt},
-        ],
-        response_format={"type": "json_object"},
-    )
-    return json.loads(completion.choices[0].message.content).get("words", [])
+        ], http)
+    return json.loads(content).get("words", [])
 
 
 async def _translate_sentence(text: str) -> str:
-    completion = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
+    async with httpx.AsyncClient() as http:
+        content = await _deepseek_chat([
             {"role": "system", "content": "You are a precise translator. Return only valid JSON."},
             {"role": "user", "content": f'Translate this Chinese sentence into natural English. Return JSON with key "translation".\n\n{text}'},
-        ],
-        response_format={"type": "json_object"},
-    )
-    return json.loads(completion.choices[0].message.content).get("translation", "")
+        ], http)
+    return json.loads(content).get("translation", "")
 
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -190,12 +202,17 @@ async def transcribe_audio(file: UploadFile = File(...)):
 
     try:
         with open(tmp_path, "rb") as audio_file:
-            transcription = await client.audio.transcriptions.create(
-                model="gpt-4o-mini-transcribe",
-                file=audio_file,
-                language="zh",
+            audio_bytes = audio_file.read()
+        async with httpx.AsyncClient() as http:
+            resp = await http.post(
+                "https://api.groq.com/openai/v1/audio/transcriptions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+                data={"model": "whisper-large-v3-turbo", "language": "zh"},
+                files={"file": (os.path.basename(tmp_path), audio_bytes, "audio/m4a")},
+                timeout=60.0,
             )
-        chinese_text = transcription.text
+            resp.raise_for_status()
+        chinese_text = resp.json()["text"]
         words = segment_chinese(chinese_text)
 
         # Look up cache and translate missing — read-only, no DB writes yet
@@ -235,11 +252,15 @@ def _fmt_vector(embedding: list[float]) -> str:
 
 
 async def _embed(text: str) -> list[float]:
-    response = await client.embeddings.create(
-        model="text-embedding-3-small",
-        input=text,
-    )
-    return response.data[0].embedding
+    async with httpx.AsyncClient() as http:
+        resp = await http.post(
+            "https://api.jina.ai/v1/embeddings",
+            headers={"Authorization": f"Bearer {JINA_API_KEY}"},
+            json={"model": "jina-embeddings-v3", "input": [text]},
+            timeout=30.0,
+        )
+        resp.raise_for_status()
+    return resp.json()["data"][0]["embedding"]
 
 
 async def _retrieve_chunks(query: str, k: int = 5, sources: list[str] | None = None) -> list[str]:
@@ -354,9 +375,8 @@ async def quiz_start(req: QuizStartRequest):
         chunks = await _retrieve_chunks(req.topic, k=7, sources=effective_sources)
         context = "\n\n".join(chunks)
 
-    completion = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
+    async with httpx.AsyncClient() as http:
+        content = await _deepseek_chat([
             {"role": "system", "content": (
                 "You are a Chinese oral examiner having a structured conversation with a student. "
                 "Use the lesson material ONLY to understand what vocabulary, grammar patterns, and topics the student has studied — "
@@ -383,10 +403,8 @@ async def quiz_start(req: QuizStartRequest):
 Exam topic: {req.topic}
 
 Start the oral examination with a natural opening question in Chinese."""},
-        ],
-        response_format={"type": "json_object"},
-    )
-    data = json.loads(completion.choices[0].message.content)
+        ], http)
+    data = json.loads(content)
     return JSONResponse({"question": data.get("question", "")})
 
 
@@ -400,9 +418,8 @@ async def quiz_next(req: QuizSessionRequest):
         chunks = await _retrieve_chunks(req.topic, k=7, sources=effective_sources)
         context = "\n\n".join(chunks)
 
-    completion = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
+    async with httpx.AsyncClient() as http:
+        content = await _deepseek_chat([
             {"role": "system", "content": (
                 "You are a Chinese oral examiner continuing a structured conversation with a student. "
                 "Use the lesson material ONLY to understand what vocabulary and grammar the student knows — do NOT copy sentences from it. "
@@ -429,10 +446,8 @@ Conversation so far:
 {_history_text(req.history)}
 
 Continue the oral examination with the next natural question in Chinese."""},
-        ],
-        response_format={"type": "json_object"},
-    )
-    data = json.loads(completion.choices[0].message.content)
+        ], http)
+    data = json.loads(content)
     return JSONResponse({"question": data.get("question", "")})
 
 
@@ -442,9 +457,8 @@ async def quiz_finish(req: QuizSessionRequest):
     if not req.history:
         raise HTTPException(status_code=400, detail="No conversation to evaluate")
 
-    completion = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
+    async with httpx.AsyncClient() as http:
+        content = await _deepseek_chat([
             {"role": "system", "content": (
                 "You are an experienced Chinese oral examiner evaluating a spoken conversation. "
                 "Write ALL evaluation text in English. "
@@ -475,10 +489,8 @@ Return JSON with:
   - "answer": the student's answer
   - "score": integer 0-100 for that exchange
   - "mistake": null if the answer was communicatively correct, otherwise describe the actual language error (wrong word choice, incorrect grammar structure, misunderstood the question, etc.) — never mention punctuation or spacing"""},
-        ],
-        response_format={"type": "json_object"},
-    )
-    data = json.loads(completion.choices[0].message.content)
+        ], http)
+    data = json.loads(content)
     return JSONResponse({
         "overall_score": data.get("overall_score", 0),
         "summary": data.get("summary", ""),
@@ -501,12 +513,17 @@ async def quiz_transcribe(file: UploadFile = File(...)):
 
     try:
         with open(tmp_path, "rb") as audio_file:
-            transcription = await client.audio.transcriptions.create(
-                model="gpt-4o-mini-transcribe",
-                file=audio_file,
-                language="zh",
+            audio_bytes = audio_file.read()
+        async with httpx.AsyncClient() as http:
+            resp = await http.post(
+                "https://api.groq.com/openai/v1/audio/transcriptions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+                data={"model": "whisper-large-v3-turbo", "language": "zh"},
+                files={"file": (os.path.basename(tmp_path), audio_bytes, "audio/m4a")},
+                timeout=60.0,
             )
-        return JSONResponse({"text": transcription.text})
+            resp.raise_for_status()
+        return JSONResponse({"text": resp.json()["text"]})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {e}")
     finally:
@@ -548,9 +565,8 @@ async def character_lookup(req: CharacterLookupRequest):
         return JSONResponse({"characters": chars, "pinyin": "", "english": ""})
 
     # English or pinyin input — use LLM to find Chinese characters
-    completion = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
+    async with httpx.AsyncClient() as http:
+        content = await _deepseek_chat([
             {"role": "system", "content": "You are a Chinese-English dictionary. Return only valid JSON."},
             {"role": "user", "content": (
                 f'The user typed: "{query}"\n\n'
@@ -562,10 +578,8 @@ async def character_lookup(req: CharacterLookupRequest):
                 f'- "english": the English meaning\n\n'
                 f'Only return the most common/natural match. Never leave "characters" empty.'
             )},
-        ],
-        response_format={"type": "json_object"},
-    )
-    data = json.loads(completion.choices[0].message.content)
+        ], http)
+    data = json.loads(content)
     return JSONResponse({
         "characters": data.get("characters", ""),
         "pinyin": data.get("pinyin", ""),

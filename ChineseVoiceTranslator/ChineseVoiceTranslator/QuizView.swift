@@ -242,7 +242,7 @@ struct QuizView: View {
                             .background(Color(UIColor.secondarySystemBackground))
                             .cornerRadius(10)
                             .font(.callout)
-                            .onChange(of: topic) { _ in
+                            .onChange(of: topic) { _, _ in
                                 if !topic.isEmpty {
                                     quizMode = .custom
                                     sources = nil
@@ -540,7 +540,7 @@ struct QuizView: View {
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: pendingAnswer)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isTranscribing)
                 .animation(.easeInOut(duration: 0.25), value: hintVisible)
-                .onChange(of: currentQuestion) { _ in
+                .onChange(of: currentQuestion) { _, _ in
                     hintTranslation = ""
                     hintVisible = false
                 }
