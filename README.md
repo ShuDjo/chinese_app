@@ -9,8 +9,9 @@
 
 ### Translate Tab — Voice & Text Input
 Record yourself speaking Chinese or type a word/phrase directly. The app:
-- Transcribes audio into Chinese characters (voice mode) or looks up typed input (text mode)
-- Breaks down the sentence **word-by-word** with English and Pinyin for each word
+- **Voice mode** — transcribes spoken Chinese into characters; if no Chinese is detected the app shows an error instead of processing
+- **Text mode** — accepts English, Serbian, or Pinyin and looks up the corresponding Chinese characters
+- Breaks down the sentence **word-by-word** with English, Serbian, and Pinyin for each word
 - Lets you **Accept & Save** the result, which translates the full sentence and stores the vocabulary for use in Quizzes and Flashcards
 - Tap any word to open a **stroke-order animation sheet** showing how each character is drawn
 
@@ -24,17 +25,17 @@ Simulate a real Chinese oral exam with an AI examiner:
 - At the end you receive an **overall score (0–100), strengths, areas to improve, and per-question feedback**
 
 ### Characters Tab — Character Lookup
-Search by English word, Pinyin, or Chinese characters to get:
+Search by English word, Serbian word, Pinyin, or Chinese characters to get:
 - Pinyin pronunciation with tone marks
-- English meaning
+- English and Serbian meaning
 - Animated **stroke-order diagrams** rendered locally from the bundled hanzi-writer dataset — no internet required for animations
 
 ### Flash Cards Tab — Vocabulary Practice
 Test your recall of saved vocabulary:
 - A random card is drawn from your saved word list
-- Type the **English meaning or Pinyin** (tone marks optional — diacritic-insensitive matching)
+- Type the **English meaning, Serbian meaning, or Pinyin** (tone marks optional — diacritic-insensitive matching)
 - **Correct** → green banner, move to the next card
-- **Incorrect** → red banner showing the correct English and Pinyin; retry the card, reveal the answer, or skip
+- **Incorrect** → red banner showing the correct English, Serbian, and Pinyin; retry the card, reveal the answer, or skip
 - **Show Answer** → reveals the answer for review
 
 ### Settings Tab — Language
