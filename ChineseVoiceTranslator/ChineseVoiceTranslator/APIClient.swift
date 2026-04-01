@@ -136,8 +136,12 @@ class APIClient {
         if let sources = sources { body["sources"] = sources }
         postJSON("\(base)/quiz/start", body: body) { data, err in
             guard let data = data else { completion(nil, err); return }
-            let q = (try? JSONDecoder().decode(QuizQuestion.self, from: data))?.question
-            completion(q, q == nil ? "Decode error" : nil)
+            if let q = (try? JSONDecoder().decode(QuizQuestion.self, from: data))?.question {
+                completion(q, nil)
+            } else {
+                let raw = String(data: data, encoding: .utf8) ?? "no response"
+                completion(nil, "Server error: \(raw)")
+            }
         }
     }
 

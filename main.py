@@ -62,6 +62,17 @@ async def startup():
         await conn.execute(
             "ALTER TABLE word_cache ADD COLUMN IF NOT EXISTS serbian TEXT"
         )
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS course_chunks (
+                id          SERIAL PRIMARY KEY,
+                source      TEXT NOT NULL,
+                page_num    INTEGER,
+                chunk_index INTEGER,
+                text        TEXT NOT NULL,
+                embedding   vector(1024),
+                created_at  TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
 
 
 # ── word cache ────────────────────────────────────────────────────────────────
@@ -374,12 +385,14 @@ async def quiz_lessons():
 @app.post("/quiz/start")
 async def quiz_start(req: QuizStartRequest):
     """Generate the first question for an exam session."""
-    if req.sources and len(req.sources) == 1:
-        context = await _build_exam_context(req.topic, req.sources[0])
-    else:
-        effective_sources = req.sources
-        chunks = await _retrieve_chunks(req.topic, k=7, sources=effective_sources)
-        context = "\n\n".join(chunks)
+    try:
+        if req.sources and len(req.sources) == 1:
+            context = await _build_exam_context(req.topic, req.sources[0])
+        else:
+            chunks = await _retrieve_chunks(req.topic, k=7, sources=req.sources)
+            context = "\n\n".join(chunks)
+    except Exception:
+        context = ""
 
     async with httpx.AsyncClient() as http:
         content = await _deepseek_chat([
@@ -417,12 +430,14 @@ Start the oral examination with a natural opening question in Chinese."""},
 @app.post("/quiz/next")
 async def quiz_next(req: QuizSessionRequest):
     """Generate the next question based on the conversation so far."""
-    if req.sources and len(req.sources) == 1:
-        context = await _build_exam_context(req.topic, req.sources[0])
-    else:
-        effective_sources = req.sources
-        chunks = await _retrieve_chunks(req.topic, k=7, sources=effective_sources)
-        context = "\n\n".join(chunks)
+    try:
+        if req.sources and len(req.sources) == 1:
+            context = await _build_exam_context(req.topic, req.sources[0])
+        else:
+            chunks = await _retrieve_chunks(req.topic, k=7, sources=req.sources)
+            context = "\n\n".join(chunks)
+    except Exception:
+        context = ""
 
     async with httpx.AsyncClient() as http:
         content = await _deepseek_chat([
