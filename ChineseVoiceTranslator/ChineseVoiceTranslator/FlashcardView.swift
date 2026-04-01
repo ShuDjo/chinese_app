@@ -221,6 +221,10 @@ struct FlashcardView: View {
                         .font(.system(size: 15))
                     Text(lang.s.pinyinValue(card.pinyin))
                         .font(.system(size: 15))
+                    if let serbian = card.serbian, !serbian.isEmpty {
+                        Text(lang.s.serbianValue(serbian))
+                            .font(.system(size: 15))
+                    }
                 }
                 .foregroundColor(.black)
                 .padding(.top, 2)
@@ -257,7 +261,12 @@ struct FlashcardView: View {
             .folding(options: .diacriticInsensitive, locale: .current)
         let matchesPinyin = pinyinBase == answerBase || card.pinyin.lowercased() == trimmed
 
-        if matchesEnglish || matchesPinyin {
+        let serbianOptions = (card.serbian ?? "").lowercased()
+            .components(separatedBy: CharacterSet(charactersIn: ",;/"))
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        let matchesSerbian = serbianOptions.contains(where: { !$0.isEmpty && $0 == trimmed })
+
+        if matchesEnglish || matchesPinyin || matchesSerbian {
             result = .correct
         } else {
             result = .incorrect

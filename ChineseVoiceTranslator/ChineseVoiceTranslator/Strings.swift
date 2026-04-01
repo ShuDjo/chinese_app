@@ -67,9 +67,14 @@ struct Strings {
         case .serbianLatin: return "Pretraga…" } }
 
     var typeEnglishOrPinyin: String { switch lang {
-        case .english: return "Type English or pinyin…"
-        case .serbianCyrillic: return "Унеси енглески или пинјин…"
-        case .serbianLatin: return "Unesi engleski ili pinjin…" } }
+        case .english: return "Type English, Serbian, or pinyin…"
+        case .serbianCyrillic: return "Унеси енглески, српски или пинјин…"
+        case .serbianLatin: return "Unesi engleski, srpski ili pinjin…" } }
+
+    var noChineseDetected: String { switch lang {
+        case .english: return "No Chinese detected. Please speak in Chinese."
+        case .serbianCyrillic: return "Нису препознате кинеске речи. Говори на кинеском."
+        case .serbianLatin: return "Nisu prepoznate kineske reči. Govori na kineskom." } }
 
     var lookUp: String { switch lang {
         case .english: return "Look Up"
@@ -261,19 +266,19 @@ struct Strings {
         case .serbianLatin: return "Pretraži po engleskoj reči, pinjinu ili kineskom znaku i odmah vidi značenje, izgovor i animovani crtež svakog znaka potez po potez." } }
 
     var englishPinyinOrChinese: String { switch lang {
-        case .english: return "English, Pinyin, or Chinese"
-        case .serbianCyrillic: return "Енглески, пинјин или кинески"
-        case .serbianLatin: return "Engleski, pinjin ili kineski" } }
+        case .english: return "English, Serbian, Pinyin, or Chinese"
+        case .serbianCyrillic: return "Енглески, српски, пинјин или кинески"
+        case .serbianLatin: return "Engleski, srpski, pinjin ili kineski" } }
 
     var characterPlaceholder: String { switch lang {
-        case .english: return "e.g.  hello  •  ni hao  •  你好"
-        case .serbianCyrillic: return "нпр.  hello  •  ni hao  •  你好"
-        case .serbianLatin: return "npr.  hello  •  ni hao  •  你好" } }
+        case .english: return "e.g.  hello  •  zdravo  •  ni hao  •  你好"
+        case .serbianCyrillic: return "нпр.  zdravo  •  ni hao  •  你好"
+        case .serbianLatin: return "npr.  zdravo  •  ni hao  •  你好" } }
 
     var characterHint: String { switch lang {
-        case .english: return "Works with any English word, pinyin (e.g. ni hao), or Chinese characters."
-        case .serbianCyrillic: return "Ради са било којом енглеском речи, пинјином (нпр. ni hao) или кинеским знаком."
-        case .serbianLatin: return "Radi sa bilo kojom engleskom reči, pinjinom (npr. ni hao) ili kineskim znakom." } }
+        case .english: return "Works with any English or Serbian word, pinyin (e.g. ni hao), or Chinese characters."
+        case .serbianCyrillic: return "Ради са bilo којом енглеском или српском речи, пинјином (нпр. ni hao) или кинеским знаком."
+        case .serbianLatin: return "Radi sa bilo kojom engleskom ili srpskom reči, pinjinom (npr. ni hao) ili kineskim znakom." } }
 
     // MARK: - FlashcardView
 
@@ -298,9 +303,9 @@ struct Strings {
         case .serbianLatin: return "Šta ovo znači?" } }
 
     var englishOrPinyin: String { switch lang {
-        case .english: return "English or Pinyin"
-        case .serbianCyrillic: return "Енглески или пинјин"
-        case .serbianLatin: return "Engleski ili pinjin" } }
+        case .english: return "English, Serbian, or Pinyin"
+        case .serbianCyrillic: return "Енглески, српски или пинјин"
+        case .serbianLatin: return "Engleski, srpski ili pinjin" } }
 
     var typeYourAnswer: String { switch lang {
         case .english: return "Type your answer..."
@@ -326,6 +331,11 @@ struct Strings {
         case .english: return "Pinyin: \(v)"
         case .serbianCyrillic: return "Пинјин: \(v)"
         case .serbianLatin: return "Pinjin: \(v)" } }
+
+    func serbianValue(_ v: String) -> String { switch lang {
+        case .english: return "Serbian: \(v)"
+        case .serbianCyrillic: return "Српски: \(v)"
+        case .serbianLatin: return "Srpski: \(v)" } }
 
     var showAnswer: String { switch lang {
         case .english: return "Show Answer"

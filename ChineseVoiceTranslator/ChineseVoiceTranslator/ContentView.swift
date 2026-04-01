@@ -534,9 +534,12 @@ struct ContentView: View {
                         api.transcribeAudio(url: url) { res, err in
                             DispatchQueue.main.async {
                                 isTranscribing = false
-                                if let err = err { errorMessage = err }
-                                withAnimation {
-                                    transcription = res
+                                if res?.error == "no_chinese_detected" {
+                                    errorMessage = lang.s.noChineseDetected
+                                } else if let err = err {
+                                    errorMessage = err
+                                } else {
+                                    withAnimation { transcription = res }
                                 }
                             }
                         }

@@ -18,6 +18,7 @@ struct WordResult: Decodable, Identifiable {
 struct TranscriptionResult: Decodable {
     let chinese_transcription: String
     let words: [WordResult]
+    let error: String?
 }
 
 // Returned by /translate (Accept) — just the sentence
@@ -30,6 +31,7 @@ struct CharacterLookupResult: Decodable {
     let characters: String
     let pinyin: String
     let english: String
+    let serbian: String?
 }
 
 // Quiz models

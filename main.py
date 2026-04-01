@@ -59,6 +59,9 @@ async def startup():
                 created_at  TIMESTAMPTZ DEFAULT NOW()
             )
         """)
+        await conn.execute(
+            "ALTER TABLE word_cache ADD COLUMN IF NOT EXISTS serbian TEXT"
+        )
 
 
 # ── word cache ────────────────────────────────────────────────────────────────
@@ -68,7 +71,7 @@ async def get_cached_words(words: list[str]) -> dict[str, dict]:
         return {}
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT word, english, pinyin FROM word_cache WHERE word = ANY($1)",
+            "SELECT word, english, pinyin, serbian FROM word_cache WHERE word = ANY($1)",
             words,
         )
     return {row["word"]: dict(row) for row in rows}
@@ -79,9 +82,9 @@ async def store_words(entries: list[dict]) -> None:
         return
     async with pool.acquire() as conn:
         await conn.executemany(
-            "INSERT INTO word_cache (word, english, pinyin) VALUES ($1, $2, $3) "
+            "INSERT INTO word_cache (word, english, pinyin, serbian) VALUES ($1, $2, $3, $4) "
             "ON CONFLICT (word) DO NOTHING",
-            [(e["word"], e["english"], e["pinyin"]) for e in entries],
+            [(e["word"], e["english"], e["pinyin"], e.get("serbian")) for e in entries],
         )
 
 
@@ -167,12 +170,12 @@ async def _translate_words(words: list[str]) -> list[dict]:
         return []
     prompt = f"""Translate each Chinese word below.
 Return a JSON object with key "words" containing an array.
-Each element must have: "word", "english", "pinyin" (with tone marks).
+Each element must have: "word", "english", "pinyin" (with tone marks), "serbian" (Serbian translation).
 
 Words: {json.dumps(words, ensure_ascii=False)}"""
     async with httpx.AsyncClient() as http:
         content = await _deepseek_chat([
-            {"role": "system", "content": "You are a precise Chinese-English dictionary. Return only valid JSON."},
+            {"role": "system", "content": "You are a precise Chinese-English-Serbian dictionary. Return only valid JSON."},
             {"role": "user", "content": prompt},
         ], http)
     return json.loads(content).get("words", [])
@@ -213,6 +216,8 @@ async def transcribe_audio(file: UploadFile = File(...)):
             )
             resp.raise_for_status()
         chinese_text = resp.json()["text"]
+        if not any(is_cjk(c) for c in chinese_text):
+            return JSONResponse({"chinese_transcription": "", "words": [], "error": "no_chinese_detected"})
         words = segment_chinese(chinese_text)
 
         # Look up cache and translate missing — read-only, no DB writes yet
@@ -544,7 +549,7 @@ async def character_lookup(req: CharacterLookupRequest):
     if not query:
         raise HTTPException(status_code=400, detail="Query is empty")
 
-    # Already Chinese — extract CJK chars, get pinyin/english via cache or LLM
+    # Already Chinese — extract CJK chars, get pinyin/english/serbian via cache or LLM
     if any(is_cjk(c) for c in query):
         chars = "".join(c for c in query if is_cjk(c))
         cached = await get_cached_words([query])
@@ -553,6 +558,7 @@ async def character_lookup(req: CharacterLookupRequest):
                 "characters": chars,
                 "pinyin": cached[query].get("pinyin", ""),
                 "english": cached[query].get("english", ""),
+                "serbian": cached[query].get("serbian") or "",
             })
         translated = await _translate_words([query])
         if translated:
@@ -561,21 +567,23 @@ async def character_lookup(req: CharacterLookupRequest):
                 "characters": chars,
                 "pinyin": t.get("pinyin", ""),
                 "english": t.get("english", ""),
+                "serbian": t.get("serbian", ""),
             })
-        return JSONResponse({"characters": chars, "pinyin": "", "english": ""})
+        return JSONResponse({"characters": chars, "pinyin": "", "english": "", "serbian": ""})
 
-    # English or pinyin input — use LLM to find Chinese characters
+    # English, Serbian, or pinyin input — use LLM to find Chinese characters
     async with httpx.AsyncClient() as http:
         content = await _deepseek_chat([
-            {"role": "system", "content": "You are a Chinese-English dictionary. Return only valid JSON."},
+            {"role": "system", "content": "You are a Chinese-English-Serbian dictionary. Return only valid JSON."},
             {"role": "user", "content": (
                 f'The user typed: "{query}"\n\n'
-                f'This could be an English word/phrase, pinyin (e.g. "ni hao", "xièxiè"), '
+                f'This could be an English or Serbian word/phrase, pinyin (e.g. "ni hao", "xièxiè"), '
                 f'or a romanization. Find the corresponding Chinese characters.\n\n'
                 f'Return JSON with keys:\n'
                 f'- "characters": the Chinese characters (hanzi only)\n'
                 f'- "pinyin": pinyin with tone marks (e.g. nǐ hǎo)\n'
-                f'- "english": the English meaning\n\n'
+                f'- "english": the English meaning\n'
+                f'- "serbian": the Serbian translation\n\n'
                 f'Only return the most common/natural match. Never leave "characters" empty.'
             )},
         ], http)
@@ -584,6 +592,7 @@ async def character_lookup(req: CharacterLookupRequest):
         "characters": data.get("characters", ""),
         "pinyin": data.get("pinyin", ""),
         "english": data.get("english", query),
+        "serbian": data.get("serbian", ""),
     })
 
 
@@ -592,7 +601,7 @@ async def character_random():
     """Return a random word from the word_cache table."""
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT word, pinyin, english FROM word_cache ORDER BY RANDOM() LIMIT 1"
+            "SELECT word, pinyin, english, serbian FROM word_cache ORDER BY RANDOM() LIMIT 1"
         )
     if not row:
         raise HTTPException(status_code=404, detail="No characters in database")
@@ -600,6 +609,7 @@ async def character_random():
         "characters": row["word"],
         "pinyin": row["pinyin"],
         "english": row["english"],
+        "serbian": row["serbian"] or "",
     })
 
 
