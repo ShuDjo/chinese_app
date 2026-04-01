@@ -24,6 +24,7 @@ struct FlashcardView: View {
     var body: some View {
         ZStack {
             Theme.warmBg.ignoresSafeArea()
+                .onTapGesture { fieldFocused = false }
             VStack(spacing: 0) {
                 // Header
                 ZStack {
@@ -271,7 +272,6 @@ struct FlashcardView: View {
         } else {
             result = .incorrect
             answer = ""
-            fieldFocused = true
         }
     }
 
@@ -296,7 +296,6 @@ struct FlashcardView: View {
                     errorMessage = err
                 } else {
                     card = fetched
-                    fieldFocused = true
                 }
             }
         }
