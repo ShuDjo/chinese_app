@@ -6,79 +6,143 @@ import WebKit
 struct StrokeOrderView: UIViewRepresentable {
     let word: String
 
+    func makeCoordinator() -> Coordinator {
+        Coordinator(word: word)
+    }
+
     func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
+        let config = WKWebViewConfiguration()
+        config.setURLSchemeHandler(context.coordinator, forURLScheme: "hanzi")
+        let webView = WKWebView(frame: .zero, configuration: config)
         webView.backgroundColor = UIColor.systemBackground
         webView.scrollView.isScrollEnabled = false
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        webView.loadHTMLString(makeHTML(), baseURL: URL(string: "https://cdn.jsdelivr.net")!)
+        context.coordinator.word = word
+        webView.load(URLRequest(url: URL(string: "hanzi://app/")!))
     }
 
-    private func makeHTML() -> String {
-        let chars = cjkChars()
-        var charBoxes = ""
-        var writerInits = ""
+    // MARK: - Coordinator / URL scheme handler
 
-        for (i, char) in chars.enumerated() {
-            charBoxes += "<div class='char-box'><div id='s\(i)'></div><p class='label'>\(char)</p></div>\n"
-            writerInits += """
-                writers.push(HanziWriter.create('s\(i)', '\(char)', {
-                  width: 150, height: 150, padding: 8,
-                  strokeColor: '#C71414',
-                  outlineColor: '#CCCCCC',
-                  showCharacter: false,
-                  showOutline: true,
-                  strokeAnimationSpeed: 0.8,
-                  delayBetweenStrokes: 350
-                }));
-                writers[\(i)].loopCharacterAnimation();
-            """
+    class Coordinator: NSObject, WKURLSchemeHandler {
+        var word: String
+
+        init(word: String) { self.word = word }
+
+        func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
+            guard let url = task.request.url else { return }
+            switch url.host {
+            case "app":  serveHTML(task)
+            case "data": serveCharData(task, url: url)
+            case "js":   serveJS(task)
+            default:     task.didFailWithError(URLError(.fileDoesNotExist))
+            }
         }
 
-        return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { background: #fff; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; gap: 24px; }
-            #chars { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; }
-            .char-box { text-align: center; }
-            .label { margin-top: 8px; font-size: 16px; font-family: -apple-system, sans-serif; color: #444; }
-            #repeat-btn {
-              padding: 10px 32px; font-size: 16px;
-              font-family: -apple-system, sans-serif;
-              background: #007AFF; color: #fff;
-              border: none; border-radius: 20px; cursor: pointer;
-            }
-          </style>
-        </head>
-        <body>
-          <div id="chars">
-          \(charBoxes)
-          </div>
-          <button id="repeat-btn" onclick="repeatAll()">Repeat</button>
-          <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@latest/dist/hanzi-writer.min.js"></script>
-          <script>
-            var writers = [];
-            function repeatAll() {
-              writers.forEach(function(w) { w.loopCharacterAnimation(); });
-            }
-            \(writerInits)
-          </script>
-        </body>
-        </html>
-        """
-    }
+        func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {}
 
-    private func cjkChars() -> [Character] {
-        word.filter { c in
-            let cp = c.unicodeScalars.first!.value
-            return (0x4E00...0x9FFF).contains(cp) || (0x3400...0x4DBF).contains(cp)
+        // MARK: Serve HTML
+
+        private func serveHTML(_ task: WKURLSchemeTask) {
+            let chars = word.filter { c in
+                let cp = c.unicodeScalars.first!.value
+                return (0x4E00...0x9FFF).contains(cp) || (0x3400...0x4DBF).contains(cp)
+            }
+
+            var charBoxes = ""
+            var writerInits = ""
+            for (i, char) in chars.enumerated() {
+                charBoxes += "<div class='char-box'><div id='s\(i)'></div><p class='label'>\(char)</p></div>\n"
+                writerInits += """
+                    writers.push(HanziWriter.create('s\(i)', '\(char)', {
+                      width: 150, height: 150, padding: 8,
+                      strokeColor: '#C71414',
+                      outlineColor: '#CCCCCC',
+                      showCharacter: false,
+                      showOutline: true,
+                      strokeAnimationSpeed: 0.8,
+                      delayBetweenStrokes: 350,
+                      dataURL: 'hanzi://data/'
+                    }));
+                    writers[\(i)].loopCharacterAnimation();
+                """
+            }
+
+            let html = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+              <style>
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body { background: #fff; display: flex; flex-direction: column; align-items: center; padding: 24px 16px; gap: 24px; }
+                #chars { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; }
+                .char-box { text-align: center; }
+                .label { margin-top: 8px; font-size: 16px; font-family: -apple-system, sans-serif; color: #444; }
+                #repeat-btn {
+                  padding: 10px 32px; font-size: 16px;
+                  font-family: -apple-system, sans-serif;
+                  background: #007AFF; color: #fff;
+                  border: none; border-radius: 20px; cursor: pointer;
+                }
+              </style>
+            </head>
+            <body>
+              <div id="chars">
+              \(charBoxes)
+              </div>
+              <button id="repeat-btn" onclick="repeatAll()">Repeat</button>
+              <script src="hanzi://js/hanzi-writer.min.js"></script>
+              <script>
+                var writers = [];
+                function repeatAll() {
+                  writers.forEach(function(w) { w.loopCharacterAnimation(); });
+                }
+                \(writerInits)
+              </script>
+            </body>
+            </html>
+            """
+            respond(to: task, data: Data(html.utf8), mimeType: "text/html")
+        }
+
+        // MARK: Serve character JSON
+
+        private func serveCharData(_ task: WKURLSchemeTask, url: URL) {
+            let charName = url.lastPathComponent.replacingOccurrences(of: ".json", with: "")
+            if let path = Bundle.main.path(forResource: charName, ofType: "json", inDirectory: "hanzi-writer-data"),
+               let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
+                respond(to: task, data: data, mimeType: "application/json")
+            } else {
+                task.didFailWithError(URLError(.fileDoesNotExist))
+            }
+        }
+
+        // MARK: Serve hanzi-writer.min.js
+
+        private func serveJS(_ task: WKURLSchemeTask) {
+            if let path = Bundle.main.path(forResource: "hanzi-writer.min", ofType: "js"),
+               let data = try? Data(contentsOf: URL(fileURLWithPath: path)) {
+                respond(to: task, data: data, mimeType: "application/javascript")
+            } else {
+                task.didFailWithError(URLError(.fileDoesNotExist))
+            }
+        }
+
+        // MARK: Helper
+
+        private func respond(to task: WKURLSchemeTask, data: Data, mimeType: String) {
+            let response = URLResponse(
+                url: task.request.url!,
+                mimeType: mimeType,
+                expectedContentLength: data.count,
+                textEncodingName: "utf-8"
+            )
+            task.didReceive(response)
+            task.didReceive(data)
+            task.didFinish()
         }
     }
 }

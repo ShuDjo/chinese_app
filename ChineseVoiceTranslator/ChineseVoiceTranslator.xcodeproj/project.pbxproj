@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		41A0BE9B2F7D09F900399392 /* hanzi-writer.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 41A0BE9A2F7D09F900399392 /* hanzi-writer.min.js */; };
+		41A0BE9C2F7D09F900399392 /* hanzi-writer.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 41A0BE9A2F7D09F900399392 /* hanzi-writer.min.js */; };
+		41A0BE9D2F7D09F900399392 /* hanzi-writer.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 41A0BE9A2F7D09F900399392 /* hanzi-writer.min.js */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		41B02B9F2ED5F57E0091B97F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +30,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		41A0BE9A2F7D09F900399392 /* hanzi-writer.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "hanzi-writer.min.js"; sourceTree = "<group>"; };
 		41B02B8F2ED5F57C0091B97F /* ChineseVoiceTranslator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChineseVoiceTranslator.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		41B02B9E2ED5F57E0091B97F /* ChineseVoiceTranslatorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChineseVoiceTranslatorTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		41B02BA82ED5F57E0091B97F /* ChineseVoiceTranslatorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChineseVoiceTranslatorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -75,6 +82,7 @@
 		41B02B862ED5F57C0091B97F = {
 			isa = PBXGroup;
 			children = (
+				41A0BE9A2F7D09F900399392 /* hanzi-writer.min.js */,
 				41B02B912ED5F57C0091B97F /* ChineseVoiceTranslator */,
 				41B02BA12ED5F57E0091B97F /* ChineseVoiceTranslatorTests */,
 				41B02BAB2ED5F57E0091B97F /* ChineseVoiceTranslatorUITests */,
@@ -212,6 +220,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				41A0BE9B2F7D09F900399392 /* hanzi-writer.min.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -219,6 +228,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				41A0BE9D2F7D09F900399392 /* hanzi-writer.min.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -226,6 +236,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				41A0BE9C2F7D09F900399392 /* hanzi-writer.min.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
