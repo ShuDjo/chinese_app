@@ -196,7 +196,7 @@ struct CharacterView: View {
                 .padding(.horizontal, 16)
 
             // Stroke animation
-            StrokeOrderView(word: result.characters)
+            StrokeOrderView(word: result.characters, repeatLabel: lang.s.repeatAnimation)
                 .frame(maxWidth: .infinity)
                 .frame(height: 260)
 

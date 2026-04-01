@@ -5,9 +5,10 @@ import WebKit
 
 struct StrokeOrderView: UIViewRepresentable {
     let word: String
+    var repeatLabel: String = "Repeat"
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(word: word)
+        Coordinator(word: word, repeatLabel: repeatLabel)
     }
 
     func makeUIView(context: Context) -> WKWebView {
@@ -21,6 +22,7 @@ struct StrokeOrderView: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.word = word
+        context.coordinator.repeatLabel = repeatLabel
         webView.load(URLRequest(url: URL(string: "hanzi://app/")!))
     }
 
@@ -28,8 +30,12 @@ struct StrokeOrderView: UIViewRepresentable {
 
     class Coordinator: NSObject, WKURLSchemeHandler {
         var word: String
+        var repeatLabel: String
 
-        init(word: String) { self.word = word }
+        init(word: String, repeatLabel: String) {
+            self.word = word
+            self.repeatLabel = repeatLabel
+        }
 
         func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
             guard let url = task.request.url else { return }
@@ -93,7 +99,7 @@ struct StrokeOrderView: UIViewRepresentable {
               <div id="chars">
               \(charBoxes)
               </div>
-              <button id="repeat-btn" onclick="repeatAll()">Repeat</button>
+              <button id="repeat-btn" onclick="repeatAll()">\(repeatLabel)</button>
               <script src="hanzi://js/hanzi-writer.min.js"></script>
               <script>
                 var writers = [];
@@ -708,7 +714,7 @@ struct ContentView: View {
             }
             .frame(height: 110)
 
-            StrokeOrderView(word: word.word)
+            StrokeOrderView(word: word.word, repeatLabel: lang.s.repeatAnimation)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .ignoresSafeArea(edges: .top)

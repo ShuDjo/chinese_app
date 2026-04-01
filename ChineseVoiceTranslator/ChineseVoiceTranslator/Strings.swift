@@ -106,6 +106,11 @@ struct Strings {
         case .serbianCyrillic: return "Додирни реч да видиш анимацију редоследа потеза"
         case .serbianLatin: return "Dodirni reč da vidiš animaciju redosleda poteza" } }
 
+    var repeatAnimation: String { switch lang {
+        case .english: return "Repeat"
+        case .serbianCyrillic: return "Понови"
+        case .serbianLatin: return "Ponovi" } }
+
     var tapToStop: String { switch lang {
         case .english: return "Tap to stop"
         case .serbianCyrillic: return "Додирни да зауставиш"
@@ -266,8 +271,8 @@ struct Strings {
         case .serbianLatin: return "Potraži znak i nauči redosled poteza" } }
 
     var characterBannerBody: String { switch lang {
-        case .english: return "Search by English word, Serbian word, pinyin, or Chinese characters to instantly see the meaning, pronunciation, and an animated stroke-by-stroke drawing of every character."
-        case .serbianCyrillic: return "Претражи реч на енглеском или српском, пинјину или кинеском знаку и одмах види значење, изговор и анимирани цртеж сваког знака потез по потез."
+        case .english: return "Search YOUR dictionary by English word, Serbian word, pinyin, or Chinese characters to instantly see the meaning, pronunciation, and an animated stroke-by-stroke drawing of every character."
+        case .serbianCyrillic: return "Претражи СВОЈ речник, користећи енглески, српски, пинјин или кинеске знакове и одмах види значење, изговор и анимирани цртеж сваког знака потез по потез."
         case .serbianLatin: return "Pretraži reč na engleskom ili srpskom, pinjinu ili kineskom znaku i odmah vidi značenje, izgovor i animirani crtež svakog znaka potez po potez." } }
 
     var englishPinyinOrChinese: String { switch lang {
@@ -298,9 +303,9 @@ struct Strings {
         case .serbianLatin: return "Testiraj se na sačuvanom rečniku" } }
 
     var flashcardBannerBody: String { switch lang {
-        case .english: return "A random character from your vocabulary is shown — type its English meaning, Serbian meaning, or pinyin to test your memory. Use Show Answer if you're stuck, then move on to keep the streak going."
-        case .serbianCyrillic: return "Приказује се случајни знак из твог речника — унеси значење на енглеском, српском или пинјин да тестираш памћење. Употреби Прикажи одговор ако заглавиш, па настави."
-        case .serbianLatin: return "Prikazuje se slučajni znak iz tvog rečnika — unesi značenje na engleskom, srpskom ili pinjin da testiraš pamćenje. Upotrebi Prikaži odgovor ako zaglaviš, pa nastavi." } }
+        case .english: return "A random character from your vocabulary is shown — type its English meaning, Serbian meaning, or pinyin to test your memory."
+        case .serbianCyrillic: return "Приказује се случајни знак из твог речника — унеси значење на енглеском, српском или пинјин да тестираш памћење."
+        case .serbianLatin: return "Prikazuje se slučajni znak iz tvog rečnika — unesi značenje na engleskom, srpskom ili pinjin da testiraš pamćenje." } }
 
     var whatDoesThisMean: String { switch lang {
         case .english: return "What does this mean?"
