@@ -180,6 +180,7 @@ struct ContentView: View {
 
     private let recorder = AudioRecorder()
     private let api = APIClient()
+    @StateObject private var speaker = WordSpeaker()
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -404,9 +405,20 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
-                Text(result.pinyin)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(Theme.red)
+                HStack(spacing: 12) {
+                    Text(result.pinyin)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(Theme.red)
+                    Button { speaker.speak(result.characters) } label: {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(Theme.red)
+                            .padding(8)
+                            .background(Theme.red.opacity(0.1))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 Text(result.english)
                     .font(.callout)

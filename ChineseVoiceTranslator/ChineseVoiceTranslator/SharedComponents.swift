@@ -127,14 +127,18 @@ struct PulsingRecordButton: View {
 
 // MARK: - WordSpeaker
 
-private class WordSpeaker: ObservableObject {
+class WordSpeaker: ObservableObject {
     private let synthesizer = AVSpeechSynthesizer()
 
     func speak(_ text: String) {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default)
+        try? session.setActive(true)
         synthesizer.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "zh-Hans")
         utterance.rate = 0.35
+        utterance.volume = 1.0
         synthesizer.speak(utterance)
     }
 }
@@ -148,12 +152,6 @@ struct WordRowView: View {
     var onDecline: (() -> Void)? = nil
     let onTap: () -> Void
 
-    enum PracticeMode { case pinyin, english }
-
-    @State private var practiceMode: PracticeMode? = nil
-    @State private var practiceInput = ""
-    @State private var practiceResult: Bool? = nil
-    @FocusState private var inputFocused: Bool
     @StateObject private var speaker = WordSpeaker()
 
     var body: some View {
@@ -205,12 +203,11 @@ struct WordRowView: View {
                 }
             }
 
-            // Practice actions — hidden when word is declined
+            // Speak button — hidden when word is declined
             if !isDeclined {
                 Divider().padding(.horizontal, 16)
 
-                HStack(spacing: 8) {
-                    // Speak button
+                HStack {
                     Button { speaker.speak(word.word) } label: {
                         Label(lang.s.speak, systemImage: "speaker.wave.2.fill")
                             .font(.caption.weight(.medium))
@@ -221,116 +218,10 @@ struct WordRowView: View {
                     .padding(.vertical, 6)
                     .background(Theme.red.opacity(0.08))
                     .cornerRadius(8)
-
-                    // Pinyin practice toggle
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            if practiceMode == .pinyin {
-                                practiceMode = nil
-                            } else {
-                                practiceMode = .pinyin
-                                practiceInput = ""
-                                practiceResult = nil
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text(lang.s.pinyin)
-                            if practiceMode == .pinyin, let r = practiceResult {
-                                Image(systemName: r ? "checkmark" : "xmark")
-                                    .font(.caption2)
-                            }
-                        }
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(practiceMode == .pinyin ? .white : Theme.red)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(practiceMode == .pinyin ? Theme.red : Theme.red.opacity(0.08))
-                    .cornerRadius(8)
-
-                    // English practice toggle
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            if practiceMode == .english {
-                                practiceMode = nil
-                            } else {
-                                practiceMode = .english
-                                practiceInput = ""
-                                practiceResult = nil
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text(lang.s.english)
-                            if practiceMode == .english, let r = practiceResult {
-                                Image(systemName: r ? "checkmark" : "xmark")
-                                    .font(.caption2)
-                            }
-                        }
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(practiceMode == .english ? .white : Theme.red)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(practiceMode == .english ? Theme.red : Theme.red.opacity(0.08))
-                    .cornerRadius(8)
-
                     Spacer()
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-
-                // Practice input area
-                if let mode = practiceMode {
-                    Divider().padding(.horizontal, 16)
-
-                    HStack(spacing: 10) {
-                        TextField(
-                            mode == .pinyin ? lang.s.typePinyin : lang.s.typeEnglish,
-                            text: $practiceInput
-                        )
-                        .font(.callout)
-                        .focused($inputFocused)
-                        .onAppear { inputFocused = true }
-                        .onSubmit { checkAnswer(mode: mode) }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(10)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(inputBorderColor, lineWidth: 1.5)
-                        )
-
-                        Button { checkAnswer(mode: mode) } label: {
-                            Image(systemName: "arrow.right.circle.fill")
-                                .font(.system(size: 28))
-                                .foregroundColor(practiceInput.isEmpty ? Color.gray.opacity(0.35) : Theme.red)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(practiceInput.isEmpty)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-                    .padding(.bottom, practiceResult == nil ? 12 : 4)
-
-                    if let result = practiceResult {
-                        HStack(spacing: 6) {
-                            Image(systemName: result ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .foregroundColor(result ? Theme.jade : .red)
-                            Text(result ? lang.s.correct : lang.s.answerWas(mode == .pinyin ? word.pinyin : word.english))
-                                .font(.caption)
-                                .foregroundColor(result ? Theme.jade : .red)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
-                        .transition(.opacity)
-                    }
-                }
             }
         }
         .background(Color.white)
@@ -339,29 +230,6 @@ struct WordRowView: View {
         .opacity(isDeclined ? 0.7 : 1.0)
     }
 
-    private var inputBorderColor: Color {
-        guard let result = practiceResult else { return Color.clear }
-        return result ? Theme.jade : .red
-    }
-
-    private func checkAnswer(mode: PracticeMode) {
-        let correct: Bool
-        if mode == .pinyin {
-            correct = normalize(practiceInput) == normalize(word.pinyin)
-        } else {
-            let input = practiceInput.trimmingCharacters(in: .whitespaces).lowercased()
-            let options = word.english.lowercased()
-                .components(separatedBy: CharacterSet(charactersIn: ",;"))
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-            correct = options.contains(input)
-        }
-        withAnimation { practiceResult = correct }
-    }
-
-    private func normalize(_ s: String) -> String {
-        s.trimmingCharacters(in: .whitespaces)
-         .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-    }
 }
 
 // MARK: - ScoreRing
