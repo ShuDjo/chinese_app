@@ -142,6 +142,7 @@ private class WordSpeaker: ObservableObject {
 // MARK: - WordRowView
 
 struct WordRowView: View {
+    @EnvironmentObject var lang: LanguageManager
     let word: WordResult
     var isDeclined: Bool = false
     var onDecline: (() -> Void)? = nil
@@ -211,7 +212,7 @@ struct WordRowView: View {
                 HStack(spacing: 8) {
                     // Speak button
                     Button { speaker.speak(word.word) } label: {
-                        Label("Speak", systemImage: "speaker.wave.2.fill")
+                        Label(lang.s.speak, systemImage: "speaker.wave.2.fill")
                             .font(.caption.weight(.medium))
                             .foregroundColor(Theme.red)
                     }
@@ -234,7 +235,7 @@ struct WordRowView: View {
                         }
                     } label: {
                         HStack(spacing: 4) {
-                            Text("Pinyin")
+                            Text(lang.s.pinyin)
                             if practiceMode == .pinyin, let r = practiceResult {
                                 Image(systemName: r ? "checkmark" : "xmark")
                                     .font(.caption2)
@@ -262,7 +263,7 @@ struct WordRowView: View {
                         }
                     } label: {
                         HStack(spacing: 4) {
-                            Text("English")
+                            Text(lang.s.english)
                             if practiceMode == .english, let r = practiceResult {
                                 Image(systemName: r ? "checkmark" : "xmark")
                                     .font(.caption2)
@@ -288,7 +289,7 @@ struct WordRowView: View {
 
                     HStack(spacing: 10) {
                         TextField(
-                            mode == .pinyin ? "Type pinyin…" : "Type English…",
+                            mode == .pinyin ? lang.s.typePinyin : lang.s.typeEnglish,
                             text: $practiceInput
                         )
                         .font(.callout)
@@ -320,7 +321,7 @@ struct WordRowView: View {
                         HStack(spacing: 6) {
                             Image(systemName: result ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .foregroundColor(result ? Theme.jade : .red)
-                            Text(result ? "Correct!" : "Answer: \(mode == .pinyin ? word.pinyin : word.english)")
+                            Text(result ? lang.s.correct : lang.s.answerWas(mode == .pinyin ? word.pinyin : word.english))
                                 .font(.caption)
                                 .foregroundColor(result ? Theme.jade : .red)
                                 .fixedSize(horizontal: false, vertical: true)

@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct ChineseVoiceTranslatorApp: App {
+    @StateObject private var langManager = LanguageManager.shared
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
@@ -27,15 +29,18 @@ struct ChineseVoiceTranslatorApp: App {
         WindowGroup {
             TabView {
                 ContentView()
-                    .tabItem { Label("Translate", systemImage: "mic.fill") }
+                    .tabItem { Label(langManager.s.tabTranslate, systemImage: "mic.fill") }
                 QuizView()
-                    .tabItem { Label("Exam", systemImage: "graduationcap") }
+                    .tabItem { Label(langManager.s.tabExam, systemImage: "graduationcap") }
                 CharacterView()
-                    .tabItem { Label("Characters", systemImage: "character") }
+                    .tabItem { Label(langManager.s.tabCharacters, systemImage: "character") }
                 FlashcardView()
-                    .tabItem { Label("Flash Cards", systemImage: "rectangle.stack.fill") }
+                    .tabItem { Label(langManager.s.tabFlashCards, systemImage: "rectangle.stack.fill") }
+                SettingsView()
+                    .tabItem { Label(langManager.s.tabSettings, systemImage: "gear") }
             }
             .tint(Theme.red)
+            .environmentObject(langManager)
         }
         .modelContainer(sharedModelContainer)
     }

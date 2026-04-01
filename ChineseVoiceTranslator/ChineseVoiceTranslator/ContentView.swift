@@ -88,6 +88,7 @@ struct StrokeOrderView: UIViewRepresentable {
 enum InputMode { case mic, text }
 
 struct ContentView: View {
+    @EnvironmentObject var lang: LanguageManager
     // Shared
     @State private var inputMode: InputMode = .mic
     @State private var isTranslating = false
@@ -133,11 +134,11 @@ struct ContentView: View {
                                     .foregroundColor(Theme.red)
                                     .frame(width: 28)
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Record, transcribe & build your vocabulary")
+                                    Text(lang.s.translateBannerTitle)
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
-                                    Text("Speak any Chinese sentence and get an instant word-by-word breakdown with translations and pinyin. Tap a word to watch its stroke order animation. Hit Accept & Save to add new words to your personal vocabulary.")
+                                    Text(lang.s.translateBannerBody)
                                         .font(.footnote)
                                         .foregroundColor(.black)
                                         .fixedSize(horizontal: false, vertical: true)
@@ -153,8 +154,8 @@ struct ContentView: View {
 
                         // Input mode toggle
                         Picker("Input Mode", selection: $inputMode) {
-                            Label("Mic", systemImage: "mic.fill").tag(InputMode.mic)
-                            Label("Type", systemImage: "keyboard").tag(InputMode.text)
+                            Label(lang.s.modeMic, systemImage: "mic.fill").tag(InputMode.mic)
+                            Label(lang.s.modeType, systemImage: "keyboard").tag(InputMode.text)
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal, 16)
@@ -179,7 +180,7 @@ struct ContentView: View {
                             if isTranscribing {
                                 HStack(spacing: 10) {
                                     ProgressView()
-                                    Text("Transcribing…")
+                                    Text(lang.s.transcribing)
                                         .font(.callout)
                                         .foregroundColor(.secondary)
                                 }
@@ -203,7 +204,7 @@ struct ContentView: View {
                             if isLookingUp {
                                 HStack(spacing: 10) {
                                     ProgressView()
-                                    Text("Looking up…")
+                                    Text(lang.s.lookingUp)
                                         .font(.callout)
                                         .foregroundColor(.secondary)
                                 }
@@ -263,7 +264,7 @@ struct ContentView: View {
     private var textInputSection: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                TextField("Type English or pinyin…", text: $textQuery)
+                TextField(lang.s.typeEnglishOrPinyin, text: $textQuery)
                     .font(.callout)
                     .focused($textFieldFocused)
                     .onSubmit { performLookup() }
@@ -275,7 +276,7 @@ struct ContentView: View {
                 Button {
                     performLookup()
                 } label: {
-                    Text("Look Up")
+                    Text(lang.s.lookUp)
                         .font(.callout.weight(.semibold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 16)
@@ -349,7 +350,7 @@ struct ContentView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(Theme.jade)
-                    Text("Added to vocabulary")
+                    Text(lang.s.addedToVocabulary)
                         .font(.callout.weight(.semibold))
                         .foregroundColor(Theme.jade)
                 }
@@ -358,7 +359,7 @@ struct ContentView: View {
             } else if isTranslating {
                 HStack(spacing: 10) {
                     ProgressView()
-                    Text("Saving…")
+                    Text(lang.s.saving)
                         .font(.callout)
                         .foregroundColor(.secondary)
                 }
@@ -370,7 +371,7 @@ struct ContentView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
-                        Text("Add to Vocabulary")
+                        Text(lang.s.addToVocabulary)
                             .fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
@@ -440,7 +441,7 @@ struct ContentView: View {
                     Text("XuéBàn")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
-                    Text("Speak. Transcribe. Learn.")
+                    Text(lang.s.translateSubtitle)
                         .font(.subheadline)
                         .foregroundColor(Color.white.opacity(0.75))
                 }
@@ -486,7 +487,7 @@ struct ContentView: View {
                 }
             }
 
-            Text(isTranscribing ? "Transcribing…" : isRecording ? "Tap to stop" : "Tap to record")
+            Text(isTranscribing ? lang.s.transcribing : isRecording ? lang.s.tapToStop : lang.s.tapToRecord)
                 .font(.footnote)
                 .foregroundColor(.secondary)
         }
@@ -521,7 +522,7 @@ struct ContentView: View {
                 Divider().padding(.horizontal, 16)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Words — tap to see strokes")
+                    Text(lang.s.wordsTapToSeeStrokes)
                         .font(.caption)
                         .foregroundColor(Color.black.opacity(0.5))
                         .padding(.horizontal, 16)
@@ -557,7 +558,7 @@ struct ContentView: View {
                     if isTranslating {
                         HStack(spacing: 10) {
                             ProgressView()
-                            Text("Saving…")
+                            Text(lang.s.saving)
                                 .font(.callout)
                                 .foregroundColor(.secondary)
                         }
@@ -577,7 +578,7 @@ struct ContentView: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "checkmark.circle.fill")
-                                Text("Accept & Save")
+                                Text(lang.s.acceptAndSave)
                                     .fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)

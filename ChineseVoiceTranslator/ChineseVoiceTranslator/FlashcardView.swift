@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct FlashcardView: View {
+    @EnvironmentObject var lang: LanguageManager
     private let api = APIClient()
 
     @State private var card: CharacterLookupResult? = nil
@@ -46,7 +47,7 @@ struct FlashcardView: View {
                             Text("XuéBàn")
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundColor(.white)
-                            Text("Test what you've learned")
+                            Text(lang.s.flashcardSubtitle)
                                 .font(.subheadline)
                                 .foregroundColor(Color.white.opacity(0.75))
                         }
@@ -68,11 +69,11 @@ struct FlashcardView: View {
                                     .foregroundColor(Theme.red)
                                     .frame(width: 28)
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Quiz yourself on your saved vocabulary")
+                                    Text(lang.s.flashcardBannerTitle)
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
-                                    Text("A random character from your vocabulary is shown — type its English meaning or pinyin to test your memory. Use Show Answer if you're stuck, then move on to keep the streak going.")
+                                    Text(lang.s.flashcardBannerBody)
                                         .font(.footnote)
                                         .foregroundColor(.black)
                                         .fixedSize(horizontal: false, vertical: true)
@@ -94,14 +95,14 @@ struct FlashcardView: View {
                                 .foregroundColor(.red)
                                 .multilineTextAlignment(.center)
                                 .padding(.top, 60)
-                            Button("Try Again") { loadCard() }
+                            Button(lang.s.tryAgain) { loadCard() }
                                 .buttonStyle(.borderedProminent)
                                 .tint(Theme.red)
                         } else if let card = card {
                             cardContent(card)
                         } else {
                             // Initial state
-                            Button("Start") { loadCard() }
+                            Button(lang.s.start) { loadCard() }
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -131,18 +132,18 @@ struct FlashcardView: View {
                     .padding(.vertical, 32)
                     .cardStyle(cornerRadius: 20)
 
-                Text("What does this mean?")
+                Text(lang.s.whatDoesThisMean)
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
             }
 
             // Answer input
             VStack(alignment: .leading, spacing: 8) {
-                Text("English or Pinyin")
+                Text(lang.s.englishOrPinyin)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.secondary)
 
-                TextField("Type your answer...", text: $answer)
+                TextField(lang.s.typeYourAnswer, text: $answer)
                     .font(.system(size: 18))
                     .foregroundColor(.black)
                     .padding(14)
@@ -165,7 +166,7 @@ struct FlashcardView: View {
 
             // Buttons
             if result == .correct || answerRevealed {
-                Button("Next Card") { nextCard() }
+                Button(lang.s.nextCard) { nextCard() }
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -173,7 +174,7 @@ struct FlashcardView: View {
                     .background(Theme.jade)
                     .cornerRadius(14)
             } else {
-                Button("Submit") { checkAnswer(card) }
+                Button(lang.s.submit) { checkAnswer(card) }
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -182,7 +183,7 @@ struct FlashcardView: View {
                     .cornerRadius(14)
                     .disabled(answer.trimmingCharacters(in: .whitespaces).isEmpty)
 
-                Button("Show Answer") { showAnswer(card) }
+                Button(lang.s.showAnswer) { showAnswer(card) }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(Theme.red)
                     .frame(maxWidth: .infinity)
@@ -191,7 +192,7 @@ struct FlashcardView: View {
                     .cornerRadius(14)
 
                 if result == .incorrect {
-                    Button("Next Card") { nextCard() }
+                    Button(lang.s.nextCard) { nextCard() }
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(Theme.jade)
                         .frame(maxWidth: .infinity)
@@ -209,16 +210,16 @@ struct FlashcardView: View {
             HStack(spacing: 8) {
                 Image(systemName: res == .correct ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .font(.system(size: 22))
-                Text(res == .correct ? "Correct!" : "Incorrect")
+                Text(res == .correct ? lang.s.correct : lang.s.incorrect)
                     .font(.system(size: 20, weight: .bold))
             }
             .foregroundColor(res == .correct ? Theme.jade : Theme.red)
 
             if res == .incorrect {
                 VStack(spacing: 2) {
-                    Text("English: \(card.english)")
+                    Text(lang.s.englishValue(card.english))
                         .font(.system(size: 15))
-                    Text("Pinyin: \(card.pinyin)")
+                    Text(lang.s.pinyinValue(card.pinyin))
                         .font(.system(size: 15))
                 }
                 .foregroundColor(.black)

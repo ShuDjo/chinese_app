@@ -34,6 +34,8 @@ enum QuizMode: Equatable {
 }
 
 struct QuizView: View {
+    @EnvironmentObject var lang: LanguageManager
+
     // Setup
     @State private var topic = ""
     @State private var quizMode: QuizMode = .custom
@@ -113,7 +115,7 @@ struct QuizView: View {
                             Text("KǎoShì")
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundColor(.white)
-                            Text("Chinese Examination Simulator")
+                            Text(lang.s.examSubtitle)
                                 .font(.subheadline)
                                 .foregroundColor(Color.white.opacity(0.75))
                         }
@@ -135,11 +137,11 @@ struct QuizView: View {
                                 .foregroundColor(Theme.red)
                                 .frame(width: 28)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("AI-powered Chinese oral examination")
+                                Text(lang.s.examBannerTitle)
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.primary)
-                                Text("Select a lesson or topic. The AI examiner asks all questions in Chinese, adapts to your answers, and evaluates your performance at the end with a detailed score and feedback.")
+                                Text(lang.s.examBannerBody)
                                     .font(.footnote)
                                     .foregroundColor(.black)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -155,13 +157,13 @@ struct QuizView: View {
 
                     // Quick-pick card
                     VStack(alignment: .leading, spacing: 14) {
-                        Label("Quick Start", systemImage: "bolt.fill")
+                        Label(lang.s.quickStart, systemImage: "bolt.fill")
                             .font(.headline)
                             .foregroundColor(Theme.red)
 
                         HStack(spacing: 12) {
                             quickPickButton(
-                                title: "Random",
+                                title: lang.s.random,
                                 icon: "shuffle",
                                 mode: .random,
                                 isLoading: isLoadingLessons && availableLessons.isEmpty
@@ -169,7 +171,7 @@ struct QuizView: View {
                                 pickRandom()
                             }
                             quickPickButton(
-                                title: "By Lesson",
+                                title: lang.s.byLesson,
                                 icon: "book.fill",
                                 mode: .lesson,
                                 isLoading: isLoadingLessons && availableLessons.isEmpty
@@ -186,7 +188,7 @@ struct QuizView: View {
 
                         if quizMode == .lesson {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Select a lesson:")
+                                Text(lang.s.selectALesson)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 ScrollView {
@@ -215,7 +217,7 @@ struct QuizView: View {
                                 }
                                 .frame(maxHeight: 200)
                                 if let lesson = selectedLesson {
-                                    Label("Covers all material up to \(formatLessonName(lesson.source))", systemImage: "info.circle")
+                                    Label(lang.s.coversAllMaterialUpTo(formatLessonName(lesson.source)), systemImage: "info.circle")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -230,11 +232,11 @@ struct QuizView: View {
 
                     // Custom topic card
                     VStack(alignment: .leading, spacing: 10) {
-                        Label("Custom Topic", systemImage: "text.book.closed.fill")
+                        Label(lang.s.customTopic, systemImage: "text.book.closed.fill")
                             .font(.headline)
                             .foregroundColor(quizMode == .custom ? Theme.red : .secondary)
 
-                        TextField("e.g. greetings, measure words, tones", text: $topic)
+                        TextField(lang.s.topicPlaceholder, text: $topic)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 12)
                             .background(Color(UIColor.secondarySystemBackground))
@@ -256,7 +258,7 @@ struct QuizView: View {
                     if isLoadingQuestion {
                         HStack(spacing: 10) {
                             ProgressView()
-                            Text("Preparing examination…")
+                            Text(lang.s.preparingExamination)
                                 .font(.callout)
                                 .foregroundColor(.secondary)
                         }
@@ -267,7 +269,7 @@ struct QuizView: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill")
-                                Text("Begin Exam")
+                                Text(lang.s.beginExam)
                                     .fontWeight(.semibold)
                             }
                             .frame(maxWidth: .infinity)
@@ -330,7 +332,7 @@ struct QuizView: View {
                     // Topic banner
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Topic")
+                            Text(lang.s.topicLabel)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Text(topic)
@@ -382,7 +384,7 @@ struct QuizView: View {
                     if isLoadingQuestion {
                         HStack(spacing: 10) {
                             ProgressView()
-                            Text("Loading question…")
+                            Text(lang.s.loadingQuestion)
                                 .font(.callout)
                                 .foregroundColor(.secondary)
                         }
@@ -407,7 +409,7 @@ struct QuizView: View {
 
                             VStack(alignment: .leading, spacing: 12) {
                                 HStack {
-                                    Label("Question", systemImage: "questionmark.circle.fill")
+                                    Label(lang.s.questionLabel, systemImage: "questionmark.circle.fill")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                     Spacer()
@@ -444,13 +446,13 @@ struct QuizView: View {
                                 ProgressView().scaleEffect(0.8)
                             } else if hintVisible, !hintTranslation.isEmpty {
                                 Button { hintVisible = false } label: {
-                                    Label("Hide translation", systemImage: "eye.slash")
+                                    Label(lang.s.hideTranslation, systemImage: "eye.slash")
                                         .font(.caption)
                                         .foregroundColor(Theme.gold)
                                 }
                             } else {
                                 Button { loadHint() } label: {
-                                    Label("Reveal translation", systemImage: "eye")
+                                    Label(lang.s.revealTranslation, systemImage: "eye")
                                         .font(.caption)
                                         .foregroundColor(Theme.gold)
                                 }
@@ -483,7 +485,7 @@ struct QuizView: View {
                     // Pending answer preview
                     if !pendingAnswer.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Your answer")
+                            Text(lang.s.yourAnswer)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Text(pendingAnswer)
@@ -503,7 +505,7 @@ struct QuizView: View {
                     if isTranscribing {
                         HStack(spacing: 10) {
                             ProgressView()
-                            Text("Transcribing…")
+                            Text(lang.s.transcribing)
                                 .font(.callout)
                                 .foregroundColor(.secondary)
                         }
@@ -550,7 +552,7 @@ struct QuizView: View {
                 if isEvaluating {
                     HStack(spacing: 10) {
                         ProgressView()
-                        Text("Evaluating session…")
+                        Text(lang.s.evaluatingSession)
                             .font(.callout)
                             .foregroundColor(.secondary)
                     }
@@ -563,7 +565,7 @@ struct QuizView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "stop.fill")
-                            Text("Stop & Evaluate")
+                            Text(lang.s.stopAndEvaluate)
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
@@ -601,7 +603,7 @@ struct QuizView: View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
-                    Text("Exam Complete")
+                    Text(lang.s.examComplete)
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.top, 12)
@@ -625,7 +627,7 @@ struct QuizView: View {
 
                     // Strengths
                     VStack(alignment: .leading, spacing: 10) {
-                        Label("Strengths", systemImage: "star.fill")
+                        Label(lang.s.strengths, systemImage: "star.fill")
                             .font(.headline)
                             .foregroundColor(Theme.jade)
                         ForEach(eval.strengths, id: \.self) { s in
@@ -642,7 +644,7 @@ struct QuizView: View {
 
                     // Improvements
                     VStack(alignment: .leading, spacing: 10) {
-                        Label("To Improve", systemImage: "arrow.up.circle.fill")
+                        Label(lang.s.toImprove, systemImage: "arrow.up.circle.fill")
                             .font(.headline)
                             .foregroundColor(.orange)
                         ForEach(eval.improvements, id: \.self) { s in
@@ -661,7 +663,7 @@ struct QuizView: View {
                     let mistakes = eval.exchanges.filter { $0.mistake != nil }
                     if !mistakes.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Label("Mistakes", systemImage: "exclamationmark.triangle.fill")
+                            Label(lang.s.mistakes, systemImage: "exclamationmark.triangle.fill")
                                 .font(.headline)
                                 .foregroundColor(.red)
 
@@ -679,7 +681,7 @@ struct QuizView: View {
                                             .bold()
                                             .foregroundColor(scoreColor(ex.score))
                                     }
-                                    Text("Your answer: \(ex.answer)")
+                                    Text(lang.s.yourAnswerWas(ex.answer))
                                         .font(.caption)
                                         .italic()
                                         .foregroundColor(.secondary)
@@ -704,7 +706,7 @@ struct QuizView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.counterclockwise")
-                        Text("New Session")
+                        Text(lang.s.newSession)
                             .fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)

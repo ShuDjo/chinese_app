@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CharacterView: View {
+    @EnvironmentObject var lang: LanguageManager
     @State private var query = ""
     @State private var result: CharacterLookupResult?
     @State private var isLoading = false
@@ -28,11 +29,11 @@ struct CharacterView: View {
                                     .foregroundColor(Theme.red)
                                     .frame(width: 28)
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("Look up any character & learn its strokes")
+                                    Text(lang.s.characterBannerTitle)
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
                                         .foregroundColor(.primary)
-                                    Text("Search by English word, pinyin, or Chinese characters to instantly see the meaning, pronunciation, and an animated stroke-by-stroke drawing of every character.")
+                                    Text(lang.s.characterBannerBody)
                                         .font(.footnote)
                                         .foregroundColor(.black)
                                         .fixedSize(horizontal: false, vertical: true)
@@ -108,7 +109,7 @@ struct CharacterView: View {
                     Text("XuéBàn")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
-                    Text("Look up stroke animations")
+                    Text(lang.s.characterSubtitle)
                         .font(.subheadline)
                         .foregroundColor(Color.white.opacity(0.75))
                 }
@@ -123,12 +124,12 @@ struct CharacterView: View {
 
     private var searchCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("English, Pinyin, or Chinese", systemImage: "magnifyingglass")
+            Label(lang.s.englishPinyinOrChinese, systemImage: "magnifyingglass")
                 .font(.headline)
                 .foregroundColor(Theme.red)
 
             HStack(spacing: 10) {
-                TextField("e.g.  hello  •  ni hao  •  你好", text: $query)
+                TextField(lang.s.characterPlaceholder, text: $query)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                     .background(Color(UIColor.secondarySystemBackground))
@@ -153,7 +154,7 @@ struct CharacterView: View {
                 .disabled(query.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
             }
 
-            Text("Works with any English word, pinyin (e.g. ni hao), or Chinese characters.")
+            Text(lang.s.characterHint)
                 .font(.caption)
                 .foregroundColor(Color.black.opacity(0.4))
         }
