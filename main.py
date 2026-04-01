@@ -447,6 +447,7 @@ async def quiz_finish(req: QuizSessionRequest):
         messages=[
             {"role": "system", "content": (
                 "You are an experienced Chinese oral examiner evaluating a spoken conversation. "
+                "Write ALL evaluation text in English. "
                 "The student's answers are speech-to-text transcriptions — they will have no punctuation, "
                 "may have run-on words, and spacing may be imperfect. "
                 "IGNORE all formatting, punctuation, and spacing issues entirely. "
