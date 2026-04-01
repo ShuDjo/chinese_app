@@ -62,17 +62,20 @@ async def startup():
         await conn.execute(
             "ALTER TABLE word_cache ADD COLUMN IF NOT EXISTS serbian TEXT"
         )
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS course_chunks (
-                id          SERIAL PRIMARY KEY,
-                source      TEXT NOT NULL,
-                page_num    INTEGER,
-                chunk_index INTEGER,
-                text        TEXT NOT NULL,
-                embedding   vector(1024),
-                created_at  TIMESTAMPTZ DEFAULT NOW()
-            )
-        """)
+        try:
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS course_chunks (
+                    id          SERIAL PRIMARY KEY,
+                    source      TEXT NOT NULL,
+                    page_num    INTEGER,
+                    chunk_index INTEGER,
+                    text        TEXT NOT NULL,
+                    embedding   vector(1024),
+                    created_at  TIMESTAMPTZ DEFAULT NOW()
+                )
+            """)
+        except Exception:
+            pass  # pgvector not yet installed — ingest.py will create it when run
 
 
 # ── word cache ────────────────────────────────────────────────────────────────
@@ -394,37 +397,38 @@ async def quiz_start(req: QuizStartRequest):
     except Exception:
         context = ""
 
-    async with httpx.AsyncClient() as http:
-        content = await _deepseek_chat([
-            {"role": "system", "content": (
-                "You are a Chinese oral examiner having a structured conversation with a student. "
-                "Use the lesson material ONLY to understand what vocabulary, grammar patterns, and topics the student has studied — "
-                "do NOT copy or quote sentences from the material. "
-                "Your job is to test whether the student can USE Chinese in real situations, not recite it. "
-                "\n\nRules:"
-                "\n- Ask ALL questions in Chinese only."
-                "\n- NEVER ask the student to translate a sentence. No '请翻译' tasks."
-                "\n- Ask short, natural conversational questions, like a real oral exam:"
-                "\n  • Personal questions using lesson vocabulary (e.g. if lesson covers jobs: 你做什么工作？你喜欢你的工作吗？)"
-                "\n  • Situational prompts (e.g. 如果你去餐厅，你怎么点菜？)"
-                "\n  • Opinion/preference questions (e.g. 你更喜欢...还是...？为什么？)"
-                "\n  • Describe-a-situation (e.g. 你能介绍一下你的家人吗？)"
-                "\n  • Simple role-play (e.g. 我是你的同事，你怎么向我介绍你自己？)"
-                "\n- Keep questions concise — one question at a time."
-                "\n- CRITICAL: Only use vocabulary and grammar structures that appear in the provided lesson material. "
-                "Do NOT introduce any new words, expressions, or grammar patterns the student has not yet encountered in the course."
-                "\nReturn only valid JSON with key 'question'."
-            )},
-            {"role": "user", "content": f"""The student has studied the following lesson material. Use it to understand their vocabulary and grammar level:
+    try:
+        async with httpx.AsyncClient() as http:
+            content = await _deepseek_chat([
+                {"role": "system", "content": (
+                    "You are a Chinese oral examiner having a structured conversation with a student. "
+                    "Use the lesson material ONLY to understand what vocabulary, grammar patterns, and topics the student has studied — "
+                    "do NOT copy or quote sentences from the material. "
+                    "Your job is to test whether the student can USE Chinese in real situations, not recite it. "
+                    "\n\nRules:"
+                    "\n- Ask ALL questions in Chinese only."
+                    "\n- NEVER ask the student to translate a sentence. No '请翻译' tasks."
+                    "\n- Ask short, natural conversational questions, like a real oral exam:"
+                    "\n  • Personal questions using lesson vocabulary (e.g. if lesson covers jobs: 你做什么工作？你喜欢你的工作吗？)"
+                    "\n  • Situational prompts (e.g. 如果你去餐厅，你怎么点菜？)"
+                    "\n  • Opinion/preference questions (e.g. 你更喜欢...还是...？为什么？)"
+                    "\n  • Describe-a-situation (e.g. 你能介绍一下你的家人吗？)"
+                    "\n  • Simple role-play (e.g. 我是你的同事，你怎么向我介绍你自己？)"
+                    "\n- Keep questions concise — one question at a time."
+                    "\nReturn only valid JSON with key 'question'."
+                )},
+                {"role": "user", "content": f"""The student has studied the following lesson material. Use it to understand their vocabulary and grammar level:
 
 {context}
 
 Exam topic: {req.topic}
 
 Start the oral examination with a natural opening question in Chinese."""},
-        ], http)
-    data = json.loads(content)
-    return JSONResponse({"question": data.get("question", "")})
+            ], http)
+        data = json.loads(content)
+        return JSONResponse({"question": data.get("question", "")})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/quiz/next")
@@ -439,25 +443,24 @@ async def quiz_next(req: QuizSessionRequest):
     except Exception:
         context = ""
 
-    async with httpx.AsyncClient() as http:
-        content = await _deepseek_chat([
-            {"role": "system", "content": (
-                "You are a Chinese oral examiner continuing a structured conversation with a student. "
-                "Use the lesson material ONLY to understand what vocabulary and grammar the student knows — do NOT copy sentences from it. "
-                "\n\nRules:"
-                "\n- Ask ALL questions in Chinese only."
-                "\n- NEVER ask to translate a sentence. No '请翻译' tasks."
-                "\n- React naturally to the student's last answer, like a real conversation:"
-                "\n  • If they answered well, follow up with a related or harder question (e.g. ask for more detail, explore a connected topic)"
-                "\n  • If they struggled, rephrase or ask a simpler question on the same theme"
-                "\n  • Occasionally acknowledge their answer briefly in Chinese before the next question (e.g. 好的，那...？ or 明白了，你觉得...？)"
-                "\n- Vary the question types: personal questions, situational prompts, opinions, role-play, describe a scenario."
-                "\n- Keep it conversational — one short question at a time."
-                "\n- CRITICAL: Only use vocabulary and grammar structures that appear in the provided lesson material. "
-                "Do NOT introduce any new words, expressions, or grammar patterns the student has not yet encountered in the course."
-                "\nReturn only valid JSON with key 'question'."
-            )},
-            {"role": "user", "content": f"""Lesson material (for vocabulary/grammar reference only — do not copy):
+    try:
+        async with httpx.AsyncClient() as http:
+            content = await _deepseek_chat([
+                {"role": "system", "content": (
+                    "You are a Chinese oral examiner continuing a structured conversation with a student. "
+                    "Use the lesson material ONLY to understand what vocabulary and grammar the student knows — do NOT copy sentences from it. "
+                    "\n\nRules:"
+                    "\n- Ask ALL questions in Chinese only."
+                    "\n- NEVER ask to translate a sentence. No '请翻译' tasks."
+                    "\n- React naturally to the student's last answer, like a real conversation:"
+                    "\n  • If they answered well, follow up with a related or harder question (e.g. ask for more detail, explore a connected topic)"
+                    "\n  • If they struggled, rephrase or ask a simpler question on the same theme"
+                    "\n  • Occasionally acknowledge their answer briefly in Chinese before the next question (e.g. 好的，那...？ or 明白了，你觉得...？)"
+                    "\n- Vary the question types: personal questions, situational prompts, opinions, role-play, describe a scenario."
+                    "\n- Keep it conversational — one short question at a time."
+                    "\nReturn only valid JSON with key 'question'."
+                )},
+                {"role": "user", "content": f"""Lesson material (for vocabulary/grammar reference only — do not copy):
 
 {context}
 
@@ -467,9 +470,11 @@ Conversation so far:
 {_history_text(req.history)}
 
 Continue the oral examination with the next natural question in Chinese."""},
-        ], http)
-    data = json.loads(content)
-    return JSONResponse({"question": data.get("question", "")})
+            ], http)
+        data = json.loads(content)
+        return JSONResponse({"question": data.get("question", "")})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/quiz/finish")
