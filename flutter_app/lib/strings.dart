@@ -105,13 +105,24 @@ class AppStrings {
   String get examErrorSelectLesson => _s('Please select a lesson first.', 'Прво изабери лекцију.', 'Prvo izaberi lekciju.');
   String get examErrorEnterTopic => _s('Please enter a topic first.', 'Прво унеси тему.', 'Prvo unesi temu.');
   String get examSummary => _s('Summary', 'Резиме', 'Rezime');
+  String get examMistakes => _s('Mistakes', 'Грешке', 'Greške');
+  String get examComplete => _s('Exam Complete', 'Испит завршен', 'Ispit završen');
+  String get examNewSession => _s('New Session', 'Нова сесија', 'Nova sesija');
+  String get examStopAndEvaluate => _s('Stop & Evaluate', 'Заустави и оцени', 'Zaustavi i oceni');
+  String get examEvaluatingSession => _s('Evaluating your session…', 'Евалуација сесије…', 'Evaluacija sesije…');
+  String get examPreparingQuestion => _s('Preparing exam…', 'Припремање испита…', 'Pripremanje ispita…');
+  String get examTopicLabel => _s('Topic', 'Тема', 'Tema');
+  String get examQuestionLabel => _s('Question', 'Питање', 'Pitanje');
+  String get examYourAnswer => _s('Your answer', 'Твој одговор', 'Tvoj odgovor');
+  String get examRevealTranslation => _s('Reveal translation', 'Прикажи превод', 'Prikaži prevod');
+  String get examHideTranslation => _s('Hide translation', 'Сакриј превод', 'Sakrij prevod');
   String get transcribed => _s('Transcribed:', 'Транскрибовано:', 'Transkribovano:');
   String get clearAndType => _s('Clear & type instead', 'Обриши и откуцај', 'Obriši i otkucaj');
   String get aiTranslationBadge => _s('AI translation · not in your dictionary yet', 'АИ превод · још није у твом речнику', 'AI prevod · još nije u tvom rečniku');
 
   // Settings
-  String get settingsTitle => _s('Settings', 'Podešavanja', 'Podešavanja');
-  String get language => _s('Language', 'Jezik', 'Jezik');
+  String get settingsTitle => _s('Settings', 'Подешавања', 'Podešavanja');
+  String get language => _s('Language', 'Језик', 'Jezik');
   String get english => 'English';
   String get serbianCyrillic => 'Српски (ћирилица)';
   String get serbianLatin => 'Srpski (latinica)';

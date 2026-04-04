@@ -18,229 +18,280 @@ class ExamScreen extends StatefulWidget {
   State<ExamScreen> createState() => _ExamScreenState();
 }
 
-enum ExamPhase { setup, quiz, evaluating, result }
 enum SetupMode { random, lesson, topic }
 
 class _ExamScreenState extends State<ExamScreen> {
   final _api = ApiClient();
   final _topicController = TextEditingController();
-  final _answerController = TextEditingController();
   final _tts = FlutterTts();
   final _recorder = AudioRecorder();
 
-  ExamPhase _phase = ExamPhase.setup;
+  // Setup
   SetupMode _setupMode = SetupMode.random;
-
   List<LessonInfo> _lessons = [];
   LessonInfo? _selectedLesson;
   bool _loadingLessons = false;
 
+  // Session
+  bool _sessionActive = false;
+  bool _sessionEnded = false;
+  String _topic = '';
+  List<String>? _sources;
   String _currentQuestion = '';
-  String _activeTopic = '';
-  List<String>? _activeSources;
   List<Map<String, String>> _history = [];
+  String _pendingAnswer = '';
+
+  // Loading
   bool _loadingQuestion = false;
-  bool _submitting = false;
-
   bool _isRecording = false;
-  bool _transcribing = false;
-  String? _transcribedAnswer;
+  bool _isTranscribing = false;
+  bool _isEvaluating = false;
 
+  // Hint
+  bool _hintVisible = false;
+  String _hintTranslation = '';
+  bool _loadingHint = false;
+
+  // Results
   SessionEvaluation? _evaluation;
   String? _error;
-  String? _hintTranslation;
-  bool _loadingHint = false;
 
   @override
   void initState() {
     super.initState();
     _fetchLessons();
     _tts.setLanguage('zh-CN');
-    _tts.setSpeechRate(0.45);
+    _tts.setSpeechRate(0.35);
+    _tts.setVolume(1.0);
   }
 
   @override
   void dispose() {
     _topicController.dispose();
-    _answerController.dispose();
     _tts.stop();
     _recorder.dispose();
     super.dispose();
   }
 
-  Future<void> _speakQuestion() async {
-    if (_currentQuestion.isNotEmpty) {
-      await _tts.stop();
-      await _tts.speak(_currentQuestion);
-    }
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  String _formatLessonName(String source) {
+    return source
+        .replaceAll('.pdf', '')
+        .replaceAllMapped(RegExp(r'course(\d+)', caseSensitive: false),
+            (m) => 'Course ${m[1]}')
+        .replaceAll('_', ' · Lesson ');
   }
 
-  Future<void> _startRecording() async {
-    final hasPermission = await _recorder.hasPermission();
-    if (!hasPermission) return;
-    final dir = await getTemporaryDirectory();
-    final path = '${dir.path}/exam_answer_${DateTime.now().millisecondsSinceEpoch}.m4a';
-    await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
-    setState(() { _isRecording = true; _transcribedAnswer = null; _error = null; });
+  void _speak(String text) {
+    _tts.stop();
+    _tts.speak(text);
   }
 
-  Future<void> _stopAndTranscribe() async {
-    final path = await _recorder.stop();
-    setState(() { _isRecording = false; _transcribing = true; });
-    if (path == null) { setState(() => _transcribing = false); return; }
-    final (text, err) = await _api.transcribeAnswer(path);
-    setState(() {
-      _transcribing = false;
-      if (err != null) _error = err;
-      else _transcribedAnswer = text ?? '';
-    });
-  }
+  // ── Data ───────────────────────────────────────────────────────────────────
 
   Future<void> _fetchLessons() async {
+    if (_lessons.isNotEmpty) return;
     setState(() => _loadingLessons = true);
-    final (lessons, err) = await _api.fetchLessons();
+    final (lessons, _) = await _api.fetchLessons();
     setState(() {
       _loadingLessons = false;
       _lessons = lessons;
-      if (err != null) _error = err;
     });
   }
 
-  Future<void> _beginExam() async {
+  void _pickRandom() {
+    if (_lessons.isEmpty) return;
+    final lesson = _lessons[Random().nextInt(_lessons.length)];
+    setState(() {
+      _setupMode = SetupMode.random;
+      _selectedLesson = null;
+      _topicController.text = _formatLessonName(lesson.source);
+      _sources = [lesson.source];
+    });
+  }
+
+  void _pickLesson(LessonInfo lesson) {
+    setState(() {
+      _selectedLesson = lesson;
+      _sources = [lesson.source];
+      _topicController.text = _formatLessonName(lesson.source);
+    });
+  }
+
+  // ── Session lifecycle ──────────────────────────────────────────────────────
+
+  Future<void> _beginSession() async {
+    final s = context.read<LanguageManager>().s;
     String topic;
     List<String>? sources;
 
     switch (_setupMode) {
       case SetupMode.random:
         if (_lessons.isEmpty) {
-          topic = 'general Chinese'; // internal backend value, not displayed
+          topic = 'general Chinese';
         } else {
           final pick = _lessons[Random().nextInt(_lessons.length)];
           sources = [pick.source];
-          topic = pick.source;
+          topic = _formatLessonName(pick.source);
         }
       case SetupMode.lesson:
         if (_selectedLesson == null) {
-          setState(() => _error = context.read<LanguageManager>().s.examErrorSelectLesson);
+          setState(() => _error = s.examErrorSelectLesson);
           return;
         }
         sources = [_selectedLesson!.source];
-        topic = _selectedLesson!.source;
+        topic = _formatLessonName(_selectedLesson!.source);
       case SetupMode.topic:
         final t = _topicController.text.trim();
         if (t.isEmpty) {
-          setState(() => _error = context.read<LanguageManager>().s.examErrorEnterTopic);
+          setState(() => _error = s.examErrorEnterTopic);
           return;
         }
         topic = t;
     }
 
     FocusScope.of(context).unfocus();
-    _activeTopic = topic;
-    _activeSources = sources;
-
     setState(() {
-      _phase = ExamPhase.quiz;
+      _topic = topic;
+      _sources = sources;
       _loadingQuestion = true;
       _history = [];
       _currentQuestion = '';
       _error = null;
-      _hintTranslation = null;
+      _sessionEnded = false;
     });
 
-    final (question, err) =
-        await _api.startQuiz(topic: topic, sources: sources);
+    final (question, err) = await _api.startQuiz(topic: topic, sources: sources);
+    if (!mounted) return;
     setState(() {
       _loadingQuestion = false;
       if (err != null) {
         _error = err;
-        _phase = ExamPhase.setup;
       } else {
         _currentQuestion = question ?? '';
+        _sessionActive = true;
       }
     });
-    if (err == null) _speakQuestion();
+    if (err == null && _currentQuestion.isNotEmpty) _speak(_currentQuestion);
   }
 
-  Future<void> _submitAnswer() async {
-    final answer = (_transcribedAnswer?.isNotEmpty == true)
-        ? _transcribedAnswer!
-        : _answerController.text.trim();
-    if (answer.isEmpty) return;
-    FocusScope.of(context).unfocus();
-    _history.add({'question': _currentQuestion, 'answer': answer});
-    _answerController.clear();
-    setState(() { _submitting = true; _hintTranslation = null; _transcribedAnswer = null; });
+  Future<void> _startRecording() async {
+    final hasPermission = await _recorder.hasPermission();
+    if (!hasPermission) return;
+    await _tts.stop();
+    final dir = await getTemporaryDirectory();
+    final path = '${dir.path}/exam_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
+    setState(() { _isRecording = true; _pendingAnswer = ''; _error = null; });
+  }
 
-    final (question, err) = await _api.nextQuestion(
-        topic: _activeTopic, history: _history, sources: _activeSources);
+  Future<void> _stopRecording() async {
+    final path = await _recorder.stop();
+    setState(() { _isRecording = false; _isTranscribing = true; });
+    if (path == null) { setState(() => _isTranscribing = false); return; }
+
+    final (text, err) = await _api.transcribeAnswer(path);
+    if (!mounted) return;
+    setState(() { _isTranscribing = false; });
+
+    if (err != null || text == null || text.isEmpty) {
+      setState(() => _error = err ?? 'No answer transcribed');
+      return;
+    }
+
+    // Auto-submit: save to history, clear question, load next
+    final answeredQ = _currentQuestion;
     setState(() {
-      _submitting = false;
-      if (err != null) {
-        _error = err;
-      } else if (question == null || question.isEmpty) {
+      _pendingAnswer = text;
+      _history.add({'question': answeredQ, 'answer': text});
+      _currentQuestion = '';
+      _hintVisible = false;
+      _hintTranslation = '';
+      _loadingQuestion = true;
+    });
+
+    final (nextQ, nextErr) = await _api.nextQuestion(
+        topic: _topic, history: _history, sources: _sources);
+    if (!mounted || _sessionEnded) return;
+
+    setState(() {
+      _loadingQuestion = false;
+      _pendingAnswer = '';
+      if (nextErr != null) {
+        _error = nextErr;
+      } else if (nextQ == null || nextQ.isEmpty) {
         _endSession();
         return;
       } else {
-        _currentQuestion = question;
+        _currentQuestion = nextQ;
       }
     });
-    if (err == null && (question?.isNotEmpty ?? false)) _speakQuestion();
-  }
-
-  Future<void> _endSession() async {
-    setState(() => _phase = ExamPhase.evaluating);
-    final lang = context.read<LanguageManager>();
-    final (eval, err) = await _api.finishQuiz(
-        topic: _activeTopic,
-        history: _history,
-        sources: _activeSources,
-        language: lang.languageCode);
-    setState(() {
-      if (err != null) {
-        _error = err;
-        _phase = ExamPhase.quiz;
-      } else {
-        _evaluation = eval;
-        _phase = ExamPhase.result;
-      }
-    });
+    if (nextErr == null && _currentQuestion.isNotEmpty) _speak(_currentQuestion);
   }
 
   Future<void> _loadHint() async {
+    if (_currentQuestion.isEmpty || _loadingHint) return;
+    if (_hintTranslation.isNotEmpty) { setState(() => _hintVisible = true); return; }
     setState(() => _loadingHint = true);
     final (translation, _) = await _api.translateHint(_currentQuestion);
-    setState(() { _loadingHint = false; _hintTranslation = translation; });
-  }
-
-  void _startOver() {
     setState(() {
-      _phase = ExamPhase.setup;
-      _history = [];
-      _currentQuestion = '';
-      _evaluation = null;
-      _error = null;
-      _hintTranslation = null;
-      _activeTopic = '';
-      _activeSources = null;
+      _loadingHint = false;
+      if (translation != null) { _hintTranslation = translation; _hintVisible = true; }
     });
   }
+
+  Future<void> _endSession() async {
+    setState(() { _sessionEnded = true; });
+    if (_isRecording) {
+      await _recorder.stop();
+      setState(() => _isRecording = false);
+    }
+    await _tts.stop();
+    setState(() { _loadingQuestion = false; _currentQuestion = ''; });
+    if (_history.isEmpty) { setState(() { _sessionActive = false; _sessionEnded = false; }); return; }
+
+    setState(() => _isEvaluating = true);
+    final lang = context.read<LanguageManager>();
+    final (eval, err) = await _api.finishQuiz(
+        topic: _topic, history: _history, sources: _sources, language: lang.languageCode);
+    setState(() {
+      _isEvaluating = false;
+      if (err != null) { _error = err; _sessionEnded = false; }
+      else { _evaluation = eval; }
+    });
+  }
+
+  void _resetSession() {
+    setState(() {
+      _setupMode = SetupMode.random;
+      _selectedLesson = null;
+      _sources = null;
+      _topic = '';
+      _topicController.clear();
+      _sessionActive = false;
+      _sessionEnded = false;
+      _currentQuestion = '';
+      _history = [];
+      _pendingAnswer = '';
+      _evaluation = null;
+      _error = null;
+      _hintVisible = false;
+      _hintTranslation = '';
+    });
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final s = context.watch<LanguageManager>().s;
-    return Scaffold(
-      backgroundColor: AppTheme.warmBg,
-      body: switch (_phase) {
-        ExamPhase.setup     => _buildSetup(s),
-        ExamPhase.quiz      => _buildQuiz(s),
-        ExamPhase.evaluating => _buildEvaluating(s),
-        ExamPhase.result    => _buildResult(s),
-      },
-    );
+    if (_evaluation != null) return _buildResults(s);
+    if (_sessionActive || _loadingQuestion) return _buildSession(s);
+    return _buildSetup(s);
   }
 
-  // ── Setup ────────────────────────────────────────────────────────────────────
+  // ── Setup ──────────────────────────────────────────────────────────────────
 
   Widget _buildSetup(AppStrings s) {
     return Column(
@@ -252,10 +303,13 @@ class _ExamScreenState extends State<ExamScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Option 1: Random ──────────────────────────────────────
+                // Option 1: Random
                 _OptionCard(
                   selected: _setupMode == SetupMode.random,
-                  onTap: () => setState(() { _setupMode = SetupMode.random; _error = null; }),
+                  onTap: () {
+                    setState(() { _setupMode = SetupMode.random; _error = null; });
+                    _pickRandom();
+                  },
                   icon: Icons.shuffle_rounded,
                   title: s.examRandomLesson,
                   subtitle: _lessons.isEmpty && !_loadingLessons
@@ -270,7 +324,7 @@ class _ExamScreenState extends State<ExamScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // ── Option 2: Choose lesson ───────────────────────────────
+                // Option 2: Choose lesson
                 _OptionCard(
                   selected: _setupMode == SetupMode.lesson,
                   onTap: () => setState(() { _setupMode = SetupMode.lesson; _error = null; }),
@@ -285,33 +339,37 @@ class _ExamScreenState extends State<ExamScreen> {
                               : _lessons.isEmpty
                                   ? Text(s.examNoLessons,
                                         style: const TextStyle(fontSize: 13, color: Colors.grey))
-                                  : DropdownButtonFormField<LessonInfo>(
-                                      value: _selectedLesson,
-                                      hint: Text(s.examSelectLesson, style: const TextStyle(fontSize: 14)),
-                                      isExpanded: true,
-                                      decoration: InputDecoration(
-                                        border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
-                                            borderSide: BorderSide.none),
-                                        filled: true,
-                                        fillColor: const Color(0xFFF2F2F7),
-                                        contentPadding: const EdgeInsets.symmetric(
-                                            horizontal: 14, vertical: 10),
-                                      ),
-                                      items: _lessons.map((l) => DropdownMenuItem(
-                                        value: l,
-                                        child: Text(l.source,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(fontSize: 14)),
-                                      )).toList(),
-                                      onChanged: (v) => setState(() => _selectedLesson = v),
+                                  : Column(
+                                      children: _lessons.map((l) {
+                                        final selected = _selectedLesson?.source == l.source;
+                                        return GestureDetector(
+                                          onTap: () => _pickLesson(l),
+                                          child: Container(
+                                            width: double.infinity,
+                                            margin: const EdgeInsets.only(bottom: 4),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            decoration: BoxDecoration(
+                                              color: selected ? AppTheme.red : const Color(0xFFF2F2F7),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(children: [
+                                              Expanded(child: Text(_formatLessonName(l.source),
+                                                  style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: selected ? Colors.white : Colors.black87))),
+                                              if (selected)
+                                                const Icon(Icons.check, size: 16, color: Colors.white),
+                                            ]),
+                                          ),
+                                        );
+                                      }).toList(),
                                     ),
                         )
                       : null,
                 ),
                 const SizedBox(height: 12),
 
-                // ── Option 3: Enter topic ─────────────────────────────────
+                // Option 3: Custom topic
                 _OptionCard(
                   selected: _setupMode == SetupMode.topic,
                   onTap: () => setState(() { _setupMode = SetupMode.topic; _error = null; }),
@@ -341,26 +399,38 @@ class _ExamScreenState extends State<ExamScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // ── Begin button ──────────────────────────────────────────
+                if (_error != null) ...[
+                  _buildErrorCard(_error!),
+                  const SizedBox(height: 16),
+                ],
+
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _beginExam,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Text(s.beginExam,
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                  ),
+                  child: _loadingQuestion
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                              color: AppTheme.red.withAlpha(30),
+                              borderRadius: BorderRadius.circular(14)),
+                          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            const SizedBox(width: 18, height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.red)),
+                            const SizedBox(width: 10),
+                            Text(s.examPreparingQuestion,
+                                style: const TextStyle(color: AppTheme.red)),
+                          ]))
+                      : ElevatedButton(
+                          onPressed: _beginSession,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: Text(s.beginExam,
+                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                        ),
                 ),
-
-                if (_error != null) ...[
-                  const SizedBox(height: 16),
-                  _buildErrorCard(_error!),
-                ],
               ],
             ),
           ),
@@ -369,354 +439,422 @@ class _ExamScreenState extends State<ExamScreen> {
     );
   }
 
-  // ── Quiz ─────────────────────────────────────────────────────────────────────
+  // ── Session ────────────────────────────────────────────────────────────────
 
-  Widget _buildQuiz(AppStrings s) {
-    final busy = _loadingQuestion || _submitting;
+  Widget _buildSession(AppStrings s) {
     return Scaffold(
       backgroundColor: AppTheme.warmBg,
-      appBar: AppBar(
-        title: Text(_activeTopic,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-            overflow: TextOverflow.ellipsis),
-        backgroundColor: AppTheme.warmBg,
-        actions: [
-          TextButton(
-            onPressed: _endSession,
-            child: Text(s.endSession, style: const TextStyle(color: AppTheme.red)),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          // ── Question card ─────────────────────────────────────────────
-          Container(
-            decoration: AppTheme.cardDecoration,
-            padding: const EdgeInsets.all(20),
-            width: double.infinity,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Q${_history.length + 1}',
-                        style: const TextStyle(color: AppTheme.red, fontWeight: FontWeight.w700, fontSize: 12)),
-                    if (!busy && _currentQuestion.isNotEmpty)
-                      GestureDetector(
-                        onTap: _speakQuestion,
-                        child: const Icon(Icons.volume_up_rounded, color: AppTheme.red, size: 22),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (busy)
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const SizedBox(width: 18, height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.red)),
-                    const SizedBox(width: 10),
-                    Text(s.loadingQuestion, style: const TextStyle(color: Colors.grey)),
-                  ])
-                else
-                  Text(_currentQuestion,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, height: 1.4)),
-                if (!busy) ...[
-                  const SizedBox(height: 16),
-                  if (_loadingHint)
-                    const SizedBox(width: 16, height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey))
-                  else if (_hintTranslation != null)
-                    Text(_hintTranslation!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic))
-                  else
-                    GestureDetector(
-                      onTap: _loadHint,
-                      child: Text(s.hint,
+          // Topic bar
+          SafeArea(
+            bottom: false,
+            child: Container(
+              color: AppTheme.warmBg,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(s.examTopicLabel,
+                          style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(_topic,
                           style: const TextStyle(
-                              color: AppTheme.red, decoration: TextDecoration.underline, fontSize: 13)),
-                    ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // ── Record button ─────────────────────────────────────────────
-          Center(
-            child: Column(
-              children: [
-                GestureDetector(
-                  onTap: busy ? null : (_isRecording ? _stopAndTranscribe : _startRecording),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 80, height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _isRecording ? Colors.red.shade700 : AppTheme.red,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.red.withAlpha(_isRecording ? 100 : 50),
-                          blurRadius: _isRecording ? 20 : 10,
-                          spreadRadius: _isRecording ? 4 : 0,
-                        ),
-                      ],
-                    ),
-                    child: _transcribing
-                        ? const Padding(
-                            padding: EdgeInsets.all(24),
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                          )
-                        : Icon(
-                            _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
-                            color: Colors.white, size: 38),
+                              fontWeight: FontWeight.bold, color: AppTheme.red, fontSize: 15),
+                          overflow: TextOverflow.ellipsis),
+                    ]),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  _isRecording
-                      ? s.tapToStop
-                      : _transcribing
-                          ? s.transcribing
-                          : s.tapToRecord,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.red.withAlpha(20),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('Q${_history.length + 1}',
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.red)),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 20),
+          const Divider(height: 1),
 
-          // ── Answer area ───────────────────────────────────────────────
-          Container(
-            decoration: AppTheme.cardDecoration,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Scrollable content
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
               children: [
-                if (_transcribedAnswer != null && _transcribedAnswer!.isNotEmpty) ...[
+                // History
+                ..._history.asMap().entries.map((e) {
+                  final i = e.key;
+                  final item = e.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF2F2F7),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Q${i + 1}',
+                          style: const TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      const SizedBox(width: 10),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(item['question'] ?? '',
+                            style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                        const SizedBox(height: 3),
+                        Text(item['answer'] ?? '',
+                            style: const TextStyle(
+                                fontSize: 13, fontStyle: FontStyle.italic, color: Colors.black87)),
+                      ])),
+                    ]),
+                  );
+                }),
+
+                // Loading question
+                if (_loadingQuestion)
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: AppTheme.cardDecoration,
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const SizedBox(width: 18, height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.red)),
+                      const SizedBox(width: 10),
+                      Text(s.loadingQuestion, style: const TextStyle(color: Colors.grey)),
+                    ]),
+                  ),
+
+                // Current question card
+                if (!_loadingQuestion && _currentQuestion.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: AppTheme.cardDecoration,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Text(s.examQuestionLabel,
+                            style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => _speak(_currentQuestion),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.red.withAlpha(20),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.volume_up_rounded, size: 18, color: AppTheme.red),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 10),
+                      Text(_currentQuestion,
+                          style: const TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.bold, height: 1.4)),
+                    ]),
+                  ),
+
+                  // Hint
+                  const SizedBox(height: 8),
+                  Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                    if (_loadingHint)
+                      const SizedBox(width: 16, height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.orange))
+                    else if (_hintVisible && _hintTranslation.isNotEmpty)
+                      GestureDetector(
+                        onTap: () => setState(() => _hintVisible = false),
+                        child: Text(s.examHideTranslation,
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.orange,
+                                decoration: TextDecoration.underline)),
+                      )
+                    else
+                      GestureDetector(
+                        onTap: _loadHint,
+                        child: Text(s.examRevealTranslation,
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.orange,
+                                decoration: TextDecoration.underline)),
+                      ),
+                  ]),
+
+                  if (_hintVisible && _hintTranslation.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withAlpha(25),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.lightbulb_rounded, size: 16, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(_hintTranslation,
+                            style: const TextStyle(fontSize: 14, color: Colors.black87))),
+                      ]),
+                    ),
+                  ],
+                ],
+
+                // Pending answer
+                if (_pendingAnswer.isNotEmpty) ...[
+                  const SizedBox(height: 12),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.red.withAlpha(15),
+                      color: const Color(0xFF3280FF).withAlpha(20),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppTheme.red.withAlpha(60)),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(s.transcribed, style: const TextStyle(fontSize: 11, color: AppTheme.red, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 4),
-                        Text(_transcribedAnswer!, style: const TextStyle(fontSize: 15)),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: () => setState(() => _transcribedAnswer = null),
-                          child: Text(s.clearAndType,
-                              style: const TextStyle(fontSize: 12, color: Colors.grey,
-                                  decoration: TextDecoration.underline)),
-                        ),
-                      ],
-                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(s.examYourAnswer,
+                          style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      const SizedBox(height: 4),
+                      Text(_pendingAnswer, style: const TextStyle(fontSize: 15)),
+                    ]),
                   ),
-                  const SizedBox(height: 12),
-                ] else ...[
-                  TextField(
-                    controller: _answerController,
-                    decoration: InputDecoration(
-                      hintText: s.typeYourAnswer,
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      filled: true, fillColor: const Color(0xFFF2F2F7),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    ),
-                    maxLines: 3, minLines: 1,
-                  ),
-                  const SizedBox(height: 12),
                 ],
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: (busy || _isRecording || _transcribing) ? null : _submitAnswer,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.red, foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text(s.submit),
+
+                // Transcribing indicator
+                if (_isTranscribing) ...[
+                  const SizedBox(height: 12),
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const SizedBox(width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.red)),
+                    const SizedBox(width: 8),
+                    Text(s.transcribing, style: const TextStyle(color: Colors.grey)),
+                  ]),
+                ],
+
+                // Mic button
+                if (!_loadingQuestion && !_isTranscribing && _currentQuestion.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Center(
+                    child: Column(children: [
+                      GestureDetector(
+                        onTap: _isRecording ? _stopRecording : _startRecording,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 80, height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _isRecording ? Colors.red.shade700 : AppTheme.red,
+                            boxShadow: [BoxShadow(
+                              color: AppTheme.red.withAlpha(_isRecording ? 120 : 60),
+                              blurRadius: _isRecording ? 24 : 12,
+                              spreadRadius: _isRecording ? 4 : 0,
+                            )],
+                          ),
+                          child: Icon(
+                            _isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                            color: Colors.white, size: 38),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(_isRecording ? s.tapToStop : s.tapToRecord,
+                          style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                    ]),
                   ),
-                ),
+                ],
+
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  _buildErrorCard(_error!),
+                ],
               ],
             ),
           ),
-
-          if (_error != null) ...[const SizedBox(height: 16), _buildErrorCard(_error!)],
-
-          // ── History ───────────────────────────────────────────────────
-          if (_history.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            ..._history.reversed.map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                decoration: AppTheme.cardDecoration,
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item['question'] ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87, fontSize: 16)),
-                    const SizedBox(height: 6),
-                    Text(item['answer'] ?? '',
-                        style: const TextStyle(color: Colors.black54, fontSize: 14)),
-                  ],
-                ),
-              ),
-            )),
-          ],
         ],
       ),
-    );
-  }
 
-  // ── Evaluating ───────────────────────────────────────────────────────────────
-
-  Widget _buildEvaluating(AppStrings s) {
-    return Scaffold(
-      backgroundColor: AppTheme.warmBg,
-      body: Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const CircularProgressIndicator(color: AppTheme.red),
-          const SizedBox(height: 24),
-          Text(s.evaluating, style: const TextStyle(fontSize: 18, color: Colors.grey)),
-        ]),
-      ),
-    );
-  }
-
-  // ── Result ───────────────────────────────────────────────────────────────────
-
-  Widget _buildResult(AppStrings s) {
-    final eval = _evaluation;
-    if (eval == null) return const SizedBox.shrink();
-
-    return Scaffold(
-      backgroundColor: AppTheme.warmBg,
-      appBar: AppBar(
-        title: Text(_activeTopic,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-            overflow: TextOverflow.ellipsis),
-        backgroundColor: AppTheme.warmBg,
-        actions: [
-          TextButton(
-            onPressed: _startOver,
-            child: Text(s.startOver, style: const TextStyle(color: AppTheme.red)),
+      // Sticky bottom: Stop & Evaluate
+      bottomNavigationBar: Container(
+        color: AppTheme.warmBg,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: _isEvaluating
+                ? Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      const SizedBox(width: 18, height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.orange)),
+                      const SizedBox(width: 10),
+                      Text(s.examEvaluatingSession,
+                          style: const TextStyle(color: Colors.grey)),
+                    ]),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: _endSession,
+                    icon: const Icon(Icons.stop_rounded),
+                    label: Text(s.examStopAndEvaluate,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  // ── Results ────────────────────────────────────────────────────────────────
+
+  Widget _buildResults(AppStrings s) {
+    final eval = _evaluation!;
+    return Scaffold(
+      backgroundColor: AppTheme.warmBg,
       body: ListView(
-        padding: const EdgeInsets.all(16),
         children: [
-          Center(
-            child: Container(
-              width: 140, height: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: _scoreColor(eval.overallScore), width: 10),
+          // Header
+          Container(
+            height: 110 + MediaQuery.of(context).padding.top,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppTheme.red, Color(0xFFB71010)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
               ),
-              child: Center(
-                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text('${eval.overallScore}',
-                      style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold,
-                          color: _scoreColor(eval.overallScore))),
-                  const Text('/ 100', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            ),
+            alignment: Alignment.center,
+            child: SafeArea(
+              bottom: false,
+              child: Text(s.examComplete,
+                  style: const TextStyle(
+                      fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+            ),
+          ),
+
+          // Score ring
+          Padding(
+            padding: const EdgeInsets.only(top: 28, bottom: 8),
+            child: Center(
+              child: SizedBox(
+                width: 140, height: 140,
+                child: Stack(alignment: Alignment.center, children: [
+                  CircularProgressIndicator(
+                    value: eval.overallScore / 100,
+                    strokeWidth: 10,
+                    backgroundColor: Colors.grey.shade200,
+                    color: _scoreColor(eval.overallScore),
+                  ),
+                  Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Text('${eval.overallScore}',
+                        style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold,
+                            color: _scoreColor(eval.overallScore))),
+                    const Text('/ 100', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  ]),
                 ]),
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Center(child: Text(s.overallScore, style: const TextStyle(color: Colors.grey, fontSize: 13))),
+          Center(child: Text(s.overallScore,
+              style: const TextStyle(color: Colors.grey, fontSize: 13))),
           const SizedBox(height: 20),
-          _resultSection(icon: Icons.summarize, title: s.examSummary,
-              child: Text(eval.summary, style: const TextStyle(fontSize: 14, height: 1.5))),
-          const SizedBox(height: 12),
+
+          // Summary
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(eval.summary,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 15, color: Colors.black54, height: 1.5)),
+          ),
+          const SizedBox(height: 20),
+
+          // Strengths
           if (eval.strengths.isNotEmpty)
             _resultSection(
-              icon: Icons.thumb_up, title: s.strengths,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                children: eval.strengths.map((str) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('• ', style: TextStyle(color: AppTheme.jade)),
-                    Expanded(child: Text(str, style: const TextStyle(fontSize: 14))),
-                  ]),
-                )).toList()),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              color: AppTheme.jade.withAlpha(20),
+              icon: Icons.star_rounded,
+              iconColor: AppTheme.jade,
+              title: s.strengths,
+              children: eval.strengths.map((str) =>
+                  _bulletRow(str, AppTheme.jade)).toList(),
             ),
           const SizedBox(height: 12),
+
+          // Improvements
           if (eval.improvements.isNotEmpty)
             _resultSection(
-              icon: Icons.trending_up, title: s.improvements,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                children: eval.improvements.map((imp) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('• ', style: TextStyle(color: AppTheme.red)),
-                    Expanded(child: Text(imp, style: const TextStyle(fontSize: 14))),
-                  ]),
-                )).toList()),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              color: Colors.orange.withAlpha(20),
+              icon: Icons.arrow_upward_rounded,
+              iconColor: Colors.orange,
+              title: s.improvements,
+              children: eval.improvements.map((imp) =>
+                  _bulletRow(imp, Colors.orange)).toList(),
             ),
           const SizedBox(height: 12),
-          ...eval.exchanges.asMap().entries.map((entry) {
-            final ex = entry.value;
-            final i = entry.key;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                decoration: AppTheme.cardDecoration,
-                padding: const EdgeInsets.all(16),
+
+          // Mistakes only
+          () {
+            final mistakes = eval.exchanges.where((ex) =>
+                ex.mistake != null && ex.mistake!.isNotEmpty).toList();
+            if (mistakes.isEmpty) return const SizedBox.shrink();
+            return _resultSection(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              color: Colors.red.withAlpha(15),
+              icon: Icons.warning_amber_rounded,
+              iconColor: Colors.red,
+              title: s.examMistakes,
+              children: mistakes.map((ex) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withAlpha(15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    Text('Q${i + 1}',
-                        style: const TextStyle(fontWeight: FontWeight.w700, color: AppTheme.red, fontSize: 12)),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                          color: _scoreColor(ex.score).withAlpha(25),
-                          borderRadius: BorderRadius.circular(20)),
-                      child: Text('${ex.score}/100',
-                          style: TextStyle(color: _scoreColor(ex.score),
-                              fontWeight: FontWeight.w600, fontSize: 13)),
-                    ),
+                    Expanded(child: Text(ex.question,
+                        style: const TextStyle(fontSize: 13, color: Colors.black54))),
+                    Text('${ex.score}/100',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold,
+                            color: _scoreColor(ex.score))),
                   ]),
-                  const SizedBox(height: 6),
-                  Text(ex.question, style: const TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 4),
-                  Text(ex.answer, style: const TextStyle(color: Colors.black54, fontSize: 13)),
-                  if (ex.mistake != null && ex.mistake!.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(ex.mistake!,
-                        style: const TextStyle(color: Colors.red, fontSize: 13, fontStyle: FontStyle.italic)),
-                  ],
+                  Text(ex.answer,
+                      style: const TextStyle(
+                          fontSize: 13, fontStyle: FontStyle.italic, color: Colors.black54)),
+                  const SizedBox(height: 4),
+                  Text(ex.mistake!,
+                      style: const TextStyle(fontSize: 13, color: Colors.red)),
                 ]),
-              ),
+              )).toList(),
             );
-          }),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _startOver,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.red, foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          }(),
+          const SizedBox(height: 20),
+
+          // New session button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+            child: ElevatedButton.icon(
+              onPressed: _resetSession,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(s.examNewSession,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3280FF),
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
             ),
-            child: Text(s.startOver),
           ),
-          const SizedBox(height: 24),
         ],
       ),
     );
   }
+
+  // ── Shared widgets ─────────────────────────────────────────────────────────
 
   Color _scoreColor(int score) {
     if (score >= 80) return AppTheme.jade;
@@ -724,19 +862,40 @@ class _ExamScreenState extends State<ExamScreen> {
     return Colors.red;
   }
 
-  Widget _resultSection({required IconData icon, required String title, required Widget child}) {
-    return Container(
-      decoration: AppTheme.cardDecoration,
-      padding: const EdgeInsets.all(16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(icon, size: 18, color: AppTheme.red),
-          const SizedBox(width: 8),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        ]),
-        const SizedBox(height: 12),
-        child,
+  Widget _bulletRow(String text, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('• ', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
       ]),
+    );
+  }
+
+  Widget _resultSection({
+    required EdgeInsets padding,
+    required Color color,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Padding(
+      padding: padding,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(icon, size: 18, color: iconColor),
+            const SizedBox(width: 8),
+            Text(title, style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 15, color: iconColor)),
+          ]),
+          const SizedBox(height: 12),
+          ...children,
+        ]),
+      ),
     );
   }
 
@@ -754,7 +913,7 @@ class _ExamScreenState extends State<ExamScreen> {
   }
 }
 
-// ── Option Card widget ────────────────────────────────────────────────────────
+// ── Option Card ───────────────────────────────────────────────────────────────
 
 class _OptionCard extends StatelessWidget {
   final bool selected;
@@ -783,56 +942,38 @@ class _OptionCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? AppTheme.red : Colors.transparent,
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: selected
-                  ? AppTheme.red.withAlpha(40)
-                  : const Color(0x11000000),
-              blurRadius: selected ? 12 : 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
+              color: selected ? AppTheme.red : Colors.transparent, width: 2),
+          boxShadow: [BoxShadow(
+            color: selected ? AppTheme.red.withAlpha(40) : const Color(0x11000000),
+            blurRadius: selected ? 12 : 8,
+            offset: const Offset(0, 3),
+          )],
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 40, height: 40,
-                  decoration: BoxDecoration(
-                    color: selected ? AppTheme.red : const Color(0xFFF2F2F7),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon,
-                      color: selected ? Colors.white : Colors.grey, size: 22),
+            Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: selected ? AppTheme.red : const Color(0xFFF2F2F7),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: selected ? AppTheme.red : Colors.black87)),
-                      const SizedBox(height: 2),
-                      Text(subtitle,
-                          style: const TextStyle(fontSize: 13, color: Colors.grey)),
-                    ],
-                  ),
-                ),
-                Icon(
-                  selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                  color: selected ? AppTheme.red : Colors.grey.shade300,
-                ),
-              ],
-            ),
+                child: Icon(icon,
+                    color: selected ? Colors.white : Colors.grey, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 16,
+                    color: selected ? AppTheme.red : Colors.black87)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              ])),
+              Icon(selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  color: selected ? AppTheme.red : Colors.grey.shade300),
+            ]),
             if (child != null) child!,
           ],
         ),
