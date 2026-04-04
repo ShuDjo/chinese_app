@@ -45,34 +45,34 @@ class AppStrings {
   String get characterBannerTitle => _s('Search your dictionary', 'Претражи свој речник', 'Pretraži svoj rečnik');
   String get characterBannerBody =>
       _s('Look up any Chinese word, English meaning, Serbian translation, or pinyin from your saved vocabulary.',
-         'Potražite bilo koju kinesku reč, englesko značenje, srpski prevod ili pinjin iz sačuvanog rečnika.',
+         'Потражите било коју кинеску реч, енглеско значење, српски превод или пинјин из сачуваног речника.',
          'Potražite bilo koju kinesku reč, englesko značenje, srpski prevod ili pinjin iz sačuvanog rečnika.');
-  String get englishPinyinOrChinese => _s('English, pinyin, or Chinese', 'Engleski, pinjin ili kineski', 'Engleski, pinjin ili kineski');
-  String get characterPlaceholder => _s('e.g. hello, nǐhǎo, 你好', 'npr. zdravo, nǐhǎo, 你好', 'npr. zdravo, nǐhǎo, 你好');
-  String get characterHint => _s('Search works across all saved words', 'Pretraga radi po svim sačuvanim rečima', 'Pretraga radi po svim sačuvanim rečima');
+  String get englishPinyinOrChinese => _s('English, pinyin, or Chinese', 'Енглески, пинјин или кинески', 'Engleski, pinjin ili kineski');
+  String get characterPlaceholder => _s('e.g. hello, nǐhǎo, 你好', 'нпр. zdravo, nǐhǎo, 你好', 'npr. zdravo, nǐhǎo, 你好');
+  String get characterHint => _s('Search works across all saved words', 'Претрага ради по свим сачуваним речима', 'Pretraga radi po svim sačuvanim rečima');
   String get notInDictionary =>
       _s('This word is not in your dictionary yet. Save words via the Translate tab to build your collection.',
          'Ова реч још није у твом речнику. Додај речи преко картице Превод да изградиш свој речник.',
          'Ova reč još nije u tvom rečniku. Dodaj reči preko kartice Prevod da izgradiš svoj rečnik.');
-  String get repeatAnimation => _s('Repeat', 'Ponovi', 'Ponovi');
+  String get repeatAnimation => _s('Repeat', 'Понови', 'Ponovi');
 
   // Flashcards screen
-  String get flashcardTitle => _s('Flash Cards', 'Kartice', 'Kartice');
-  String get flashcardSubtitle => _s('Test yourself', 'Testiraj se', 'Testiraj se');
-  String get flashcardBannerTitle => _s('Practice your vocabulary', 'Vežbaj rečnik', 'Vežbaj rečnik');
+  String get flashcardTitle => _s('Flash Cards', 'Картице', 'Kartice');
+  String get flashcardSubtitle => _s('Test yourself', 'Тестирај се', 'Testiraj se');
+  String get flashcardBannerTitle => _s('Practice your vocabulary', 'Вежбај речник', 'Vežbaj rečnik');
   String get flashcardBannerBody =>
       _s('Type the pinyin or English translation for each character from your saved vocabulary. Serbian words count too!',
-         'Unesi pinjin ili engleski prevod za svaki karakter iz sačuvanog rečnika. Srpske reči važe!',
+         'Унеси пинјин или енглески превод за сваки карактер из сачуваног речника. Српске речи важе!',
          'Unesi pinjin ili engleski prevod za svaki karakter iz sačuvanog rečnika. Srpske reči važe!');
-  String get typeAnswer => _s('Type pinyin or English…', 'Ukucaj pinjin ili engleski…', 'Ukucaj pinjin ili engleski…');
-  String get check => _s('Check', 'Proveri', 'Proveri');
-  String get next => _s('Next', 'Sledeće', 'Sledeće');
-  String get correct => _s('Correct!', 'Tačno!', 'Tačno!');
-  String get incorrect => _s('Not quite', 'Nije tačno', 'Nije tačno');
-  String get answer => _s('Answer:', 'Odgovor:', 'Odgovor:');
+  String get typeAnswer => _s('Type pinyin or English…', 'Укуцај пинјин или енглески…', 'Ukucaj pinjin ili engleski…');
+  String get check => _s('Check', 'Провери', 'Proveri');
+  String get next => _s('Next', 'Следеће', 'Sledeće');
+  String get correct => _s('Correct!', 'Тачно!', 'Tačno!');
+  String get incorrect => _s('Not quite', 'Није тачно', 'Nije tačno');
+  String get answer => _s('Answer:', 'Одговор:', 'Odgovor:');
   String get noWordsYet =>
       _s('No words saved yet. Use the Translate tab to add words to your vocabulary.',
-         'Nema sačuvanih reči. Koristi Prevod karticu da dodaš reči.',
+         'Нема сачуваних речи. Користи картицу Превод да додаш речи.',
          'Nema sačuvanih reči. Koristi Prevod karticu da dodaš reči.');
 
   // Exam screen
@@ -145,8 +145,8 @@ class AppStrings {
       'Molimo ukucajte samo na srpskom (latinica ili ćirilica).');
 
   // Common
-  String get retry => _s('Retry', 'Pokušaj ponovo', 'Pokušaj ponovo');
-  String get speak => _s('Speak', 'Izgovori', 'Izgovori');
+  String get retry => _s('Retry', 'Покушај поново', 'Pokušaj ponovo');
+  String get speak => _s('Speak', 'Изговори', 'Izgovori');
 
   String _s(String en, String cyrl, String lat) {
     switch (lang) {
