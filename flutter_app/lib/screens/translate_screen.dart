@@ -74,7 +74,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
   Future<void> _startRecording() async {
     final status = await Permission.microphone.request();
     if (!status.isGranted) {
-      setState(() => _error = 'Microphone permission denied');
+      setState(() => _error = context.read<LanguageManager>().s.micPermissionDenied);
       return;
     }
     final dir = await getTemporaryDirectory();

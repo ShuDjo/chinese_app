@@ -14,30 +14,32 @@ class AppStrings {
   // Translate screen
   String get translateTitle => _s('XuéBàn', 'XuéBàn', 'XuéBàn');
   String get translateSubtitle => _s('Chinese Translator', 'Кинески преводилац', 'Kineski prevodilac');
-  String get translateBannerTitle => _s('How it works', 'Kako radi', 'Kako radi');
+  String get translateBannerTitle => _s('How it works', 'Како ради', 'Kako radi');
   String get translateBannerBody =>
       _s('Speak any Chinese sentence and get an instant word-by-word breakdown with translations, pinyin and characters.',
-         'Изговорите било коју кинеску реченицу и добијте тренутну разраду реч по реч са преводима, пинјином и карактерима.',
+         'Изговорите bilo коју кинеску реченицу и добијте тренутну разраду реч по реч са преводима, пинјином и карактерима.',
          'Izgovorite bilo koju kinesku rečenicu i dobijte trenutnu razradu reč po reč sa prevodima, pinjiinom i karakterima.');
   String get translateBannerBodyType =>
       _s('Type any sentence in English, Serbian, or pinyin to get translation, pinyin and characters.',
-         'Укуцајте било коју реченицу на енглеском, српском или пинјину да добијете превод, пинјин и карактере.',
+         'Укуцајте bilo коју реченицу на енглеском, српском или пинјину да добијете превод, пинјин и карактере.',
          'Ukucajte bilo koju rečenicu na engleskom, srpskom ili pinjinu da dobijete prevod, pinjin i karaktere.');
-  String get modeMic => _s('Mic', 'Mikrofon', 'Mikrofon');
-  String get modeType => _s('Type', 'Kucaj', 'Kucaj');
-  String get tapToRecord => _s('Tap to record', 'Dodirnite za snimanje', 'Dodirnite za snimanje');
-  String get tapToStop => _s('Tap to stop', 'Dodirnite za zaustavljanje', 'Dodirnite za zaustavljanje');
-  String get transcribing => _s('Transcribing…', 'Transkripcija…', 'Transkripcija…');
-  String get lookingUp => _s('Looking up…', 'Pretraga…', 'Pretraga…');
+  String get modeMic => _s('Mic', 'Микрофон', 'Mikrofon');
+  String get modeType => _s('Type', 'Куцај', 'Kucaj');
+  String get tapToRecord => _s('Tap to record', 'Додирните за снимање', 'Dodirnite za snimanje');
+  String get tapToStop => _s('Tap to stop', 'Додирните за заустављање', 'Dodirnite za zaustavljanje');
+  String get transcribing => _s('Transcribing…', 'Транскрипција…', 'Transkripcija…');
+  String get lookingUp => _s('Looking up…', 'Претрага…', 'Pretraga…');
   String get typeEnglishOrPinyin => _s('Type English, Serbian, or pinyin…', 'Укуцајте енглески, српски или пинјин…', 'Kucajte engleski, srpski ili pinjin…');
-  String get lookUp => _s('Search', 'Pretraži', 'Pretraži');
-  String get acceptAndSave => _s('Accept and save to your dictionary', 'Prihvati i sačuvaj u rečnik', 'Prihvati i sačuvaj u rečnik');
-  String get addToVocabulary => _s('Add to vocabulary', 'Dodaj u rečnik', 'Dodaj u rečnik');
-  String get addedToVocabulary => _s('Added to vocabulary!', 'Dodato u rečnik!', 'Dodato u rečnik!');
-  String get saving => _s('Saving…', 'Čuvanje…', 'Čuvanje…');
-  String get wordsTapToSeeStrokes => _s('Tap a word to watch its stroke order animation', 'Dodirnite reč da vidite animaciju redosleda poteza', 'Dodirnite reč da vidite animaciju redosleda poteza');
-  String get sentenceTranslation => _s('Sentence translation', 'Prevod rečenice', 'Prevod rečenice');
-  String get noChineseDetected => _s('No Chinese speech detected. Please try again.', 'Nije detektovan kineski govor. Pokušajte ponovo.', 'Nije detektovan kineski govor. Pokušajte ponovo.');
+  String get lookUp => _s('Search', 'Претражи', 'Pretraži');
+  String get acceptAndSave => _s('Accept and save to your dictionary', 'Прихвати и сачувај у речник', 'Prihvati i sačuvaj u rečnik');
+  String get addToVocabulary => _s('Add to vocabulary', 'Додај у речник', 'Dodaj u rečnik');
+  String get addedToVocabulary => _s('Added to vocabulary!', 'Додато у речник!', 'Dodato u rečnik!');
+  String get saving => _s('Saving…', 'Чување…', 'Čuvanje…');
+  String get wordsTapToSeeStrokes => _s('Tap a word to watch its stroke order animation', 'Додирните реч да видите анимацију редоследа потеза', 'Dodirnite reč da vidite animaciju redosleda poteza');
+  String get sentenceTranslation => _s('Sentence translation', 'Превод реченице', 'Prevod rečenice');
+  String get noChineseDetected => _s('No Chinese speech detected. Please try again.', 'Није детектован кинески говор. Покушајте поново.', 'Nije detektovan kineski govor. Pokušajte ponovo.');
+  String get micPermissionDenied => _s('Microphone permission denied. Please enable it in Settings.', 'Дозвола за микрофон одбијена. Омогућите је у Подешавањима.', 'Dozvola za mikrofon odbijena. Omogućite je u Podešavanjima.');
+  String get noAnswerTranscribed => _s('No answer transcribed. Please try again.', 'Одговор није транскрибован. Покушајте поново.', 'Odgovor nije transkribovan. Pokušajte ponovo.');
 
   // Characters screen
   String get characterTitle => _s('My Dictionary', 'Мој речник', 'Moj rečnik');
@@ -45,10 +47,10 @@ class AppStrings {
   String get characterBannerTitle => _s('Search your dictionary', 'Претражи свој речник', 'Pretraži svoj rečnik');
   String get characterBannerBody =>
       _s('Look up any Chinese word, English meaning, Serbian translation, or pinyin from your saved vocabulary.',
-         'Потражите било коју кинеску реч, енглеско значење, српски превод или пинјин из сачуваног речника.',
+         'Потражите bilo коју кинеску реч, енглеско значење, српски превод или пинјин из сачуваног речника.',
          'Potražite bilo koju kinesku reč, englesko značenje, srpski prevod ili pinjin iz sačuvanog rečnika.');
   String get englishPinyinOrChinese => _s('English, pinyin, or Chinese', 'Енглески, пинјин или кинески', 'Engleski, pinjin ili kineski');
-  String get characterPlaceholder => _s('e.g. hello, nǐhǎo, 你好', 'нпр. zdravo, nǐhǎo, 你好', 'npr. zdravo, nǐhǎo, 你好');
+  String get characterPlaceholder => _s('e.g. hello, nǐhǎo, 你好', 'нпр. здраво, nǐhǎo, 你好', 'npr. zdravo, nǐhǎo, 你好');
   String get characterHint => _s('Search works across all saved words', 'Претрага ради по свим сачуваним речима', 'Pretraga radi po svim sačuvanim rečima');
   String get notInDictionary =>
       _s('This word is not in your dictionary yet. Save words via the Translate tab to build your collection.',
@@ -90,7 +92,6 @@ class AppStrings {
   String get strengths => _s('Strengths', 'Предности', 'Prednosti');
   String get improvements => _s('Areas to improve', 'Области за побољшање', 'Oblasti za poboljšanje');
   String get startOver => _s('Start Over', 'Почни изнова', 'Počni iznova');
-
   String get hint => _s('Hint', 'Наговештај', 'Nagoveštaj');
   String get loadingQuestion => _s('Loading question…', 'Учитавање питања…', 'Učitavanje pitanja…');
   String get examRandomLesson => _s('Random lesson', 'Насумична лекција', 'Nasumična lekcija');

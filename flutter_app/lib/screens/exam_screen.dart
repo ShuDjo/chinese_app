@@ -180,7 +180,7 @@ class _ExamScreenState extends State<ExamScreen> {
   Future<void> _startRecording() async {
     final status = await Permission.microphone.request();
     if (!status.isGranted) {
-      setState(() => _error = 'Microphone permission denied. Please enable it in Settings.');
+      setState(() => _error = context.read<LanguageManager>().s.micPermissionDenied);
       return;
     }
     await _tts.stop();
@@ -200,7 +200,7 @@ class _ExamScreenState extends State<ExamScreen> {
     setState(() { _isTranscribing = false; });
 
     if (err != null || text == null || text.isEmpty) {
-      setState(() => _error = err ?? 'No answer transcribed');
+      setState(() => _error = err ?? context.read<LanguageManager>().s.noAnswerTranscribed);
       return;
     }
 
