@@ -17,11 +17,11 @@ class AppStrings {
   String get translateBannerTitle => _s('How it works', 'Како ради', 'Kako radi');
   String get translateBannerBody =>
       _s('Speak any Chinese sentence and get an instant word-by-word breakdown with translations, pinyin and characters.',
-         'Изговорите bilo коју кинеску реченицу и добијте тренутну разраду реч по реч са преводима, пинјином и карактерима.',
+         'Изговорите било коју кинеску реченицу и добијте тренутну разраду реч по реч са преводима, пинјином и карактерима.',
          'Izgovorite bilo koju kinesku rečenicu i dobijte trenutnu razradu reč po reč sa prevodima, pinjiinom i karakterima.');
   String get translateBannerBodyType =>
       _s('Type any sentence in English, Serbian, or pinyin to get translation, pinyin and characters.',
-         'Укуцајте bilo коју реченицу на енглеском, српском или пинјину да добијете превод, пинјин и карактере.',
+         'Укуцајте било коју реченицу на енглеском, српском или пинјину да добијете превод, пинјин и карактере.',
          'Ukucajte bilo koju rečenicu na engleskom, srpskom ili pinjinu da dobijete prevod, pinjin i karaktere.');
   String get modeMic => _s('Mic', 'Микрофон', 'Mikrofon');
   String get modeType => _s('Type', 'Куцај', 'Kucaj');
@@ -47,7 +47,7 @@ class AppStrings {
   String get characterBannerTitle => _s('Search your dictionary', 'Претражи свој речник', 'Pretraži svoj rečnik');
   String get characterBannerBody =>
       _s('Look up any Chinese word, English meaning, Serbian translation, or pinyin from your saved vocabulary.',
-         'Потражите bilo коју кинеску реч, енглеско значење, српски превод или пинјин из сачуваног речника.',
+         'Потражите било коју кинеску реч, енглеско значење, српски превод или пинјин из сачуваног речника.',
          'Potražite bilo koju kinesku reč, englesko značenje, srpski prevod ili pinjin iz sačuvanog rečnika.');
   String get englishPinyinOrChinese => _s('English, pinyin, or Chinese', 'Енглески, пинјин или кинески', 'Engleski, pinjin ili kineski');
   String get characterPlaceholder => _s('e.g. hello, nǐhǎo, 你好', 'нпр. здраво, nǐhǎo, 你好', 'npr. zdravo, nǐhǎo, 你好');
