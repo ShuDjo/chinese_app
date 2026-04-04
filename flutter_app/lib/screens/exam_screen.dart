@@ -113,7 +113,7 @@ class _ExamScreenState extends State<ExamScreen> {
     switch (_setupMode) {
       case SetupMode.random:
         if (_lessons.isEmpty) {
-          topic = 'general Chinese';
+          topic = 'general Chinese'; // internal backend value, not displayed
         } else {
           final pick = _lessons[Random().nextInt(_lessons.length)];
           sources = [pick.source];
@@ -121,7 +121,7 @@ class _ExamScreenState extends State<ExamScreen> {
         }
       case SetupMode.lesson:
         if (_selectedLesson == null) {
-          setState(() => _error = 'Please select a lesson first.');
+          setState(() => _error = context.read<LanguageManager>().s.examErrorSelectLesson);
           return;
         }
         sources = [_selectedLesson!.source];
@@ -129,7 +129,7 @@ class _ExamScreenState extends State<ExamScreen> {
       case SetupMode.topic:
         final t = _topicController.text.trim();
         if (t.isEmpty) {
-          setState(() => _error = 'Please enter a topic first.');
+          setState(() => _error = context.read<LanguageManager>().s.examErrorEnterTopic);
           return;
         }
         topic = t;
@@ -257,10 +257,10 @@ class _ExamScreenState extends State<ExamScreen> {
                   selected: _setupMode == SetupMode.random,
                   onTap: () => setState(() { _setupMode = SetupMode.random; _error = null; }),
                   icon: Icons.shuffle_rounded,
-                  title: 'Random lesson',
+                  title: s.examRandomLesson,
                   subtitle: _lessons.isEmpty && !_loadingLessons
-                      ? 'Will use general Chinese topics'
-                      : 'Picks a random lesson from your library',
+                      ? s.examRandomSubtitleEmpty
+                      : s.examRandomSubtitle,
                   child: _loadingLessons
                       ? const Padding(
                           padding: EdgeInsets.only(top: 8),
@@ -275,19 +275,19 @@ class _ExamScreenState extends State<ExamScreen> {
                   selected: _setupMode == SetupMode.lesson,
                   onTap: () => setState(() { _setupMode = SetupMode.lesson; _error = null; }),
                   icon: Icons.list_alt_rounded,
-                  title: 'Choose a lesson',
-                  subtitle: 'Select one of your saved lessons',
+                  title: s.examChooseLesson,
+                  subtitle: s.examChooseSubtitle,
                   child: _setupMode == SetupMode.lesson
                       ? Padding(
                           padding: const EdgeInsets.only(top: 12),
                           child: _loadingLessons
                               ? const LinearProgressIndicator(color: AppTheme.red)
                               : _lessons.isEmpty
-                                  ? const Text('No lessons found. Save words via Translate first.',
-                                        style: TextStyle(fontSize: 13, color: Colors.grey))
+                                  ? Text(s.examNoLessons,
+                                        style: const TextStyle(fontSize: 13, color: Colors.grey))
                                   : DropdownButtonFormField<LessonInfo>(
                                       value: _selectedLesson,
-                                      hint: const Text('Select a lesson…', style: TextStyle(fontSize: 14)),
+                                      hint: Text(s.examSelectLesson, style: const TextStyle(fontSize: 14)),
                                       isExpanded: true,
                                       decoration: InputDecoration(
                                         border: OutlineInputBorder(
@@ -316,8 +316,8 @@ class _ExamScreenState extends State<ExamScreen> {
                   selected: _setupMode == SetupMode.topic,
                   onTap: () => setState(() { _setupMode = SetupMode.topic; _error = null; }),
                   icon: Icons.edit_rounded,
-                  title: 'Enter a topic',
-                  subtitle: 'Type any topic — greetings, food, travel…',
+                  title: s.examEnterTopic,
+                  subtitle: s.examEnterTopicSubtitle,
                   child: _setupMode == SetupMode.topic
                       ? Padding(
                           padding: const EdgeInsets.only(top: 12),
@@ -507,14 +507,14 @@ class _ExamScreenState extends State<ExamScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Transcribed:', style: TextStyle(fontSize: 11, color: AppTheme.red, fontWeight: FontWeight.w600)),
+                        Text(s.transcribed, style: const TextStyle(fontSize: 11, color: AppTheme.red, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 4),
                         Text(_transcribedAnswer!, style: const TextStyle(fontSize: 15)),
                         const SizedBox(height: 6),
                         GestureDetector(
                           onTap: () => setState(() => _transcribedAnswer = null),
-                          child: const Text('Clear & type instead',
-                              style: TextStyle(fontSize: 12, color: Colors.grey,
+                          child: Text(s.clearAndType,
+                              style: const TextStyle(fontSize: 12, color: Colors.grey,
                                   decoration: TextDecoration.underline)),
                         ),
                       ],
@@ -637,7 +637,7 @@ class _ExamScreenState extends State<ExamScreen> {
           const SizedBox(height: 8),
           Center(child: Text(s.overallScore, style: const TextStyle(color: Colors.grey, fontSize: 13))),
           const SizedBox(height: 20),
-          _resultSection(icon: Icons.summarize, title: 'Summary',
+          _resultSection(icon: Icons.summarize, title: s.examSummary,
               child: Text(eval.summary, style: const TextStyle(fontSize: 14, height: 1.5))),
           const SizedBox(height: 12),
           if (eval.strengths.isNotEmpty)

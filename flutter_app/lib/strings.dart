@@ -76,22 +76,38 @@ class AppStrings {
          'Nema sačuvanih reči. Koristi Prevod karticu da dodaš reči.');
 
   // Exam screen
-  String get examTitle => _s('Exam', 'Ispita', 'Ispita');
-  String get examSubtitle => _s('AI-powered quiz', 'Quiz sa veštačkom inteligencijom', 'Quiz sa veštačkom inteligencijom');
-  String get chooseLessons => _s('Choose lessons (optional)', 'Izaberi lekcije (opciono)', 'Izaberi lekcije (opciono)');
-  String get topic => _s('Topic', 'Tema', 'Tema');
-  String get topicPlaceholder => _s('e.g. greetings, food, travel…', 'npr. pozdravi, hrana, putovanje…', 'npr. pozdravi, hrana, putovanje…');
-  String get beginExam => _s('Begin Exam', 'Počni Ispit', 'Počni Ispit');
-  String get typeYourAnswer => _s('Type your answer…', 'Ukucaj odgovor…', 'Ukucaj odgovor…');
-  String get submit => _s('Submit', 'Pošalji', 'Pošalji');
-  String get endSession => _s('End Session', 'Završi sesiju', 'Završi sesiju');
-  String get evaluating => _s('Evaluating…', 'Evaluacija…', 'Evaluacija…');
-  String get overallScore => _s('Overall Score', 'Ukupan rezultat', 'Ukupan rezultat');
-  String get strengths => _s('Strengths', 'Prednosti', 'Prednosti');
-  String get improvements => _s('Areas to improve', 'Oblasti za poboljšanje', 'Oblasti za poboljšanje');
-  String get startOver => _s('Start Over', 'Počni iznova', 'Počni iznova');
-  String get hint => _s('Hint', 'Nagoveštaj', 'Nagoveštaj');
-  String get loadingQuestion => _s('Loading question…', 'Učitavanje pitanja…', 'Učitavanje pitanja…');
+  String get examTitle => _s('Exam', 'Испит', 'Ispit');
+  String get examSubtitle => _s('AI-powered quiz', 'Квиз са вештачком интелигенцијом', 'Kviz sa veštačkom inteligencijom');
+  String get chooseLessons => _s('Choose lessons (optional)', 'Изабери лекције (опционо)', 'Izaberi lekcije (opciono)');
+  String get topic => _s('Topic', 'Тема', 'Tema');
+  String get topicPlaceholder => _s('e.g. greetings, food, travel…', 'нпр. поздрави, храна, путовање…', 'npr. pozdravi, hrana, putovanje…');
+  String get beginExam => _s('Begin Exam', 'Почни испит', 'Počni ispit');
+  String get typeYourAnswer => _s('Type your answer…', 'Укуцај одговор…', 'Ukucaj odgovor…');
+  String get submit => _s('Submit', 'Пошаљи', 'Pošalji');
+  String get endSession => _s('End Session', 'Заврши сесију', 'Završi sesiju');
+  String get evaluating => _s('Evaluating…', 'Евалуација…', 'Evaluacija…');
+  String get overallScore => _s('Overall Score', 'Укупан резултат', 'Ukupan rezultat');
+  String get strengths => _s('Strengths', 'Предности', 'Prednosti');
+  String get improvements => _s('Areas to improve', 'Области за побољшање', 'Oblasti za poboljšanje');
+  String get startOver => _s('Start Over', 'Почни изнова', 'Počni iznova');
+
+  String get hint => _s('Hint', 'Наговештај', 'Nagoveštaj');
+  String get loadingQuestion => _s('Loading question…', 'Учитавање питања…', 'Učitavanje pitanja…');
+  String get examRandomLesson => _s('Random lesson', 'Насумична лекција', 'Nasumična lekcija');
+  String get examRandomSubtitle => _s('Picks a random lesson from your library', 'Бира насумичну лекцију из твоје библиотеке', 'Bira nasumičnu lekciju iz tvoje biblioteke');
+  String get examRandomSubtitleEmpty => _s('Will use general Chinese topics', 'Користиће опште кинеске теме', 'Koristiće opšte kineske teme');
+  String get examChooseLesson => _s('Choose a lesson', 'Изабери лекцију', 'Izaberi lekciju');
+  String get examChooseSubtitle => _s('Select one of your saved lessons', 'Изабери једну од сачуваних лекција', 'Izaberi jednu od sačuvanih lekcija');
+  String get examNoLessons => _s('No lessons found. Save words via Translate first.', 'Нема лекција. Прво сачувај речи преко Превода.', 'Nema lekcija. Prvo sačuvaj reči preko Prevoda.');
+  String get examSelectLesson => _s('Select a lesson…', 'Изабери лекцију…', 'Izaberi lekciju…');
+  String get examEnterTopic => _s('Enter a topic', 'Унеси тему', 'Unesi temu');
+  String get examEnterTopicSubtitle => _s('Type any topic — greetings, food, travel…', 'Укуцај тему — поздрави, храна, путовање…', 'Ukucaj temu — pozdravi, hrana, putovanje…');
+  String get examErrorSelectLesson => _s('Please select a lesson first.', 'Прво изабери лекцију.', 'Prvo izaberi lekciju.');
+  String get examErrorEnterTopic => _s('Please enter a topic first.', 'Прво унеси тему.', 'Prvo unesi temu.');
+  String get examSummary => _s('Summary', 'Резиме', 'Rezime');
+  String get transcribed => _s('Transcribed:', 'Транскрибовано:', 'Transkribovano:');
+  String get clearAndType => _s('Clear & type instead', 'Обриши и откуцај', 'Obriši i otkucaj');
+  String get aiTranslationBadge => _s('AI translation · not in your dictionary yet', 'АИ превод · још није у твом речнику', 'AI prevod · još nije u tvom rečniku');
 
   // Settings
   String get settingsTitle => _s('Settings', 'Podešavanja', 'Podešavanja');

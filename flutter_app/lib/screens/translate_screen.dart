@@ -562,8 +562,8 @@ class _TranslateScreenState extends State<TranslateScreen> {
               child: Row(children: [
                 const Icon(Icons.auto_awesome, size: 14, color: Colors.orange),
                 const SizedBox(width: 6),
-                const Text('AI translation · not in your dictionary yet',
-                    style: TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.w500)),
+                Text(s.aiTranslationBadge,
+                    style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.w500)),
               ]),
             ),
           Padding(
