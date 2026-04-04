@@ -17,11 +17,11 @@ class AppStrings {
   String get translateBannerTitle => _s('How it works', 'Kako radi', 'Kako radi');
   String get translateBannerBody =>
       _s('Speak any Chinese sentence and get an instant word-by-word breakdown with translations, pinyin and characters.',
-         'Изговорите bilo koju кинеску реченицу и добијте тренутну разраду реч по реч са преводима, пинијином и карактерима.',
+         'Изговорите било коју кинеску реченицу и добијте тренутну разраду реч по реч са преводима, пинјином и карактерима.',
          'Izgovorite bilo koju kinesku rečenicu i dobijte trenutnu razradu reč po reč sa prevodima, pinjiinom i karakterima.');
   String get translateBannerBodyType =>
       _s('Type any sentence in English, Serbian, or pinyin to get translation, pinyin and characters.',
-         'Укуцајте bilo коју реченицу на енглеском, српском или пинијину да добијете превод, пинијин и карактере.',
+         'Укуцајте било коју реченицу на енглеском, српском или пинјину да добијете превод, пинјин и карактере.',
          'Ukucajte bilo koju rečenicu na engleskom, srpskom ili pinjinu da dobijete prevod, pinjin i karaktere.');
   String get modeMic => _s('Mic', 'Mikrofon', 'Mikrofon');
   String get modeType => _s('Type', 'Kucaj', 'Kucaj');
@@ -29,7 +29,7 @@ class AppStrings {
   String get tapToStop => _s('Tap to stop', 'Dodirnite za zaustavljanje', 'Dodirnite za zaustavljanje');
   String get transcribing => _s('Transcribing…', 'Transkripcija…', 'Transkripcija…');
   String get lookingUp => _s('Looking up…', 'Pretraga…', 'Pretraga…');
-  String get typeEnglishOrPinyin => _s('Type English, Serbian, or pinyin…', 'Кucajте енgleski, srpski ili pinjin…', 'Kucajte engleski, srpski ili pinjin…');
+  String get typeEnglishOrPinyin => _s('Type English, Serbian, or pinyin…', 'Укуцајте енглески, српски или пинјин…', 'Kucajte engleski, srpski ili pinjin…');
   String get lookUp => _s('Search', 'Pretraži', 'Pretraži');
   String get acceptAndSave => _s('Accept and save to your dictionary', 'Prihvati i sačuvaj u rečnik', 'Prihvati i sačuvaj u rečnik');
   String get addToVocabulary => _s('Add to vocabulary', 'Dodaj u rečnik', 'Dodaj u rečnik');
