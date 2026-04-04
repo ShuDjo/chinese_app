@@ -568,6 +568,7 @@ async def quiz_transcribe(file: UploadFile = File(...)):
 
 class CharacterLookupRequest(BaseModel):
     query: str
+    input_type: str = "any"  # "english" | "serbian" | "pinyin" | "any"
 
 
 @app.post("/character/lookup")
@@ -577,17 +578,39 @@ async def character_lookup(req: CharacterLookupRequest):
     if not query:
         raise HTTPException(status_code=400, detail="Query is empty")
 
+    like = f"%{query.lower()}%"
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            """SELECT word, pinyin, english, serbian FROM word_cache
-               WHERE word = $1
-                  OR LOWER(english) ILIKE $2
-                  OR LOWER(COALESCE(serbian, '')) ILIKE $2
-                  OR LOWER(pinyin) ILIKE $2
-               LIMIT 1""",
-            query,
-            f"%{query.lower()}%",
-        )
+        if req.input_type == "english":
+            row = await conn.fetchrow(
+                """SELECT word, pinyin, english, serbian FROM word_cache
+                   WHERE word = $1 OR LOWER(english) ILIKE $2
+                   LIMIT 1""",
+                query, like,
+            )
+        elif req.input_type == "serbian":
+            row = await conn.fetchrow(
+                """SELECT word, pinyin, english, serbian FROM word_cache
+                   WHERE word = $1 OR LOWER(COALESCE(serbian, '')) ILIKE $2
+                   LIMIT 1""",
+                query, like,
+            )
+        elif req.input_type == "pinyin":
+            row = await conn.fetchrow(
+                """SELECT word, pinyin, english, serbian FROM word_cache
+                   WHERE word = $1 OR LOWER(pinyin) ILIKE $2
+                   LIMIT 1""",
+                query, like,
+            )
+        else:
+            row = await conn.fetchrow(
+                """SELECT word, pinyin, english, serbian FROM word_cache
+                   WHERE word = $1
+                      OR LOWER(english) ILIKE $2
+                      OR LOWER(COALESCE(serbian, '')) ILIKE $2
+                      OR LOWER(pinyin) ILIKE $2
+                   LIMIT 1""",
+                query, like,
+            )
 
     if not row:
         raise HTTPException(status_code=404, detail="not_in_dictionary")
@@ -598,6 +621,55 @@ async def character_lookup(req: CharacterLookupRequest):
         "english":    row["english"],
         "serbian":    row["serbian"] or "",
     })
+
+
+class AiLookupRequest(BaseModel):
+    query: str
+    input_type: str = "english"  # "english" | "serbian" | "pinyin"
+
+
+@app.post("/character/ai-lookup")
+async def character_ai_lookup(req: AiLookupRequest):
+    """Use AI to find a word and return its Chinese characters, pinyin, English and Serbian."""
+    query = req.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Query is empty")
+
+    if req.input_type == "serbian":
+        lang_hint = "Serbian"
+    elif req.input_type == "pinyin":
+        lang_hint = "pinyin"
+    else:
+        lang_hint = "English"
+
+    try:
+        async with httpx.AsyncClient() as http:
+            content = await _deepseek_chat([
+                {"role": "system", "content": (
+                    "You are a Chinese-English-Serbian dictionary. "
+                    "Given a word or phrase in any language, return its Chinese translation "
+                    "along with pinyin, English meaning, and Serbian translation. "
+                    "Return ONLY valid JSON with keys: word (Chinese characters), "
+                    "pinyin (with tone marks), english (English translation), serbian (Serbian translation)."
+                )},
+                {"role": "user", "content": (
+                    f'The user typed this {lang_hint} word/phrase: "{query}"\n'
+                    "Return its Chinese translation as JSON."
+                )},
+            ], http)
+        data = json.loads(content)
+        if not data.get("word"):
+            raise HTTPException(status_code=422, detail="Could not determine Chinese translation")
+        return JSONResponse({
+            "characters": data["word"],
+            "pinyin":     data.get("pinyin", ""),
+            "english":    data.get("english", ""),
+            "serbian":    data.get("serbian", ""),
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/character/random")
