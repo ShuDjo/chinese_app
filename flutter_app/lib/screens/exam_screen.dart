@@ -4,6 +4,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../language_manager.dart';
 import '../strings.dart';
 import '../theme.dart';
@@ -177,8 +178,11 @@ class _ExamScreenState extends State<ExamScreen> {
   }
 
   Future<void> _startRecording() async {
-    final hasPermission = await _recorder.hasPermission();
-    if (!hasPermission) return;
+    final status = await Permission.microphone.request();
+    if (!status.isGranted) {
+      setState(() => _error = 'Microphone permission denied. Please enable it in Settings.');
+      return;
+    }
     await _tts.stop();
     final dir = await getTemporaryDirectory();
     final path = '${dir.path}/exam_${DateTime.now().millisecondsSinceEpoch}.m4a';
