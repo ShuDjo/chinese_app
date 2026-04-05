@@ -14,16 +14,42 @@ class InputTypeSelector extends StatelessWidget {
     required this.onChanged,
   });
 
+  // The non-pinyin type valid for the current language
+  static InputType languageType(AppLanguage lang) =>
+      (lang == AppLanguage.english) ? InputType.english : InputType.serbian;
+
   @override
   Widget build(BuildContext context) {
+    final lang = context.watch<LanguageManager>().language;
     final s = context.watch<LanguageManager>().s;
+    final validType = languageType(lang);
+
+    // If the current selection doesn't match the language, reset after frame
+    if (selected != InputType.pinyin && selected != validType) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => onChanged(validType));
+    }
+
+    final effectiveSelected =
+        (selected == InputType.pinyin) ? InputType.pinyin : validType;
+
+    final langLabel =
+        (lang == AppLanguage.english) ? s.inputTypeEnglish : s.inputTypeSerbian;
+
     return Row(
       children: [
-        _Pill(label: s.inputTypeEnglish, type: InputType.english, selected: selected, onTap: onChanged),
+        _Pill(
+          label: langLabel,
+          type: validType,
+          selected: effectiveSelected,
+          onTap: onChanged,
+        ),
         const SizedBox(width: 8),
-        _Pill(label: s.inputTypePinyin,  type: InputType.pinyin,  selected: selected, onTap: onChanged),
-        const SizedBox(width: 8),
-        _Pill(label: s.inputTypeSerbian, type: InputType.serbian,  selected: selected, onTap: onChanged),
+        _Pill(
+          label: s.inputTypePinyin,
+          type: InputType.pinyin,
+          selected: effectiveSelected,
+          onTap: onChanged,
+        ),
       ],
     );
   }
