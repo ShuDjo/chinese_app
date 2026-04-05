@@ -130,7 +130,7 @@ class ApiClient {
   }
 
   // POST /quiz/next
-  Future<(String?, String?)> nextQuestion({
+  Future<(String?, String?, String?)> nextQuestion({
     required String topic,
     required List<Map<String, String>> history,
     List<String>? sources,
@@ -143,11 +143,11 @@ class ApiClient {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 30));
-      if (resp.statusCode != 200) return (null, 'Server error ${resp.statusCode}');
+      if (resp.statusCode != 200) return (null, null, 'Server error ${resp.statusCode}');
       final json = jsonDecode(resp.body) as Map<String, dynamic>;
-      return (json['question'] as String?, null);
+      return (json['question'] as String?, json['reaction'] as String? ?? '', null);
     } catch (e) {
-      return (null, e.toString());
+      return (null, null, e.toString());
     }
   }
 

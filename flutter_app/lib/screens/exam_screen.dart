@@ -48,6 +48,9 @@ class _ExamScreenState extends State<ExamScreen> {
   bool _isTranscribing = false;
   bool _isEvaluating = false;
 
+  // Reaction (examiner acknowledgment before next question)
+  String _reaction = '';
+
   // Hint
   bool _hintVisible = false;
   String _hintTranslation = '';
@@ -215,7 +218,7 @@ class _ExamScreenState extends State<ExamScreen> {
       _loadingQuestion = true;
     });
 
-    final (nextQ, nextErr) = await _api.nextQuestion(
+    final (nextQ, reaction, nextErr) = await _api.nextQuestion(
         topic: _topic, history: _history, sources: _sources);
     if (!mounted || _sessionEnded) return;
 
@@ -224,14 +227,22 @@ class _ExamScreenState extends State<ExamScreen> {
       _pendingAnswer = '';
       if (nextErr != null) {
         _error = nextErr;
+        _reaction = '';
       } else if (nextQ == null || nextQ.isEmpty) {
         _endSession();
         return;
       } else {
         _currentQuestion = nextQ;
+        _reaction = reaction ?? '';
       }
     });
-    if (nextErr == null && _currentQuestion.isNotEmpty) _speak(_currentQuestion);
+    if (nextErr == null && _currentQuestion.isNotEmpty) {
+      if (_reaction.isNotEmpty) {
+        await _tts.speak(_reaction);
+        await Future.delayed(const Duration(milliseconds: 900));
+      }
+      _speak(_currentQuestion);
+    }
   }
 
   Future<void> _loadHint() async {
@@ -282,6 +293,7 @@ class _ExamScreenState extends State<ExamScreen> {
       _error = null;
       _hintVisible = false;
       _hintTranslation = '';
+      _reaction = '';
     });
   }
 
@@ -533,6 +545,19 @@ class _ExamScreenState extends State<ExamScreen> {
 
                 // Current question card
                 if (!_loadingQuestion && _currentQuestion.isNotEmpty) ...[
+                  if (_reaction.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.red.withAlpha(15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(_reaction,
+                          style: const TextStyle(
+                              fontSize: 15, color: AppTheme.red, fontStyle: FontStyle.italic)),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: AppTheme.cardDecoration,

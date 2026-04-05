@@ -463,34 +463,35 @@ async def quiz_next(req: QuizSessionRequest):
 
     try:
         async with httpx.AsyncClient() as http:
-            content = await _deepseek_chat([
+            messages = [
                 {"role": "system", "content": (
                     "You are a Chinese oral examiner continuing a structured conversation with a student. "
                     "Use the lesson material ONLY to understand what vocabulary and grammar the student knows — do NOT copy sentences from it. "
                     "\n\nRules:"
                     "\n- Ask ALL questions in Chinese only."
                     "\n- NEVER ask to translate a sentence. No '请翻译' tasks."
-                    "\n- React naturally to the student's last answer, like a real conversation:"
-                    "\n  • If they answered well, follow up with a related or harder question (e.g. ask for more detail, explore a connected topic)"
-                    "\n  • If they struggled, rephrase or ask a simpler question on the same theme"
-                    "\n  • Occasionally acknowledge their answer briefly in Chinese before the next question (e.g. 好的，那...？ or 明白了，你觉得...？)"
-                    "\n- Vary the question types: personal questions, situational prompts, opinions, role-play, describe a scenario."
+                    "\n- React naturally to the student's last answer:"
+                    "\n  • If they answered well, follow up with a related or harder question"
+                    "\n  • If they struggled, rephrase or simplify on the same theme"
+                    "\n- Vary question types: personal questions, situational prompts, opinions, role-play."
                     "\n- Keep it conversational — one short question at a time."
-                    "\nReturn only valid JSON with key 'question'."
+                    "\nReturn only valid JSON with keys:"
+                    "\n  'reaction': short Chinese acknowledgment of the previous answer (e.g. '好的！', '哦，很有意思。', '明白了。') — 1-5 words only, or null"
+                    "\n  'question': the next question in Chinese"
                 )},
-                {"role": "user", "content": f"""Lesson material (for vocabulary/grammar reference only — do not copy):
+                {"role": "user", "content": f"Lesson material (vocabulary/grammar reference only):\n\n{context}\n\nExam topic: {req.topic}"},
+            ]
+            for item in req.history:
+                messages.append({"role": "assistant", "content": json.dumps({"question": item.question}, ensure_ascii=False)})
+                messages.append({"role": "user", "content": item.answer})
+            messages.append({"role": "user", "content": "Continue the oral examination with the next natural question in Chinese."})
 
-{context}
-
-Exam topic: {req.topic}
-
-Conversation so far:
-{_history_text(req.history)}
-
-Continue the oral examination with the next natural question in Chinese."""},
-            ], http)
+            content = await _deepseek_chat(messages, http)
         data = json.loads(content)
-        return JSONResponse({"question": data.get("question", "")})
+        return JSONResponse({
+            "question": data.get("question", ""),
+            "reaction": data.get("reaction") or "",
+        })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
