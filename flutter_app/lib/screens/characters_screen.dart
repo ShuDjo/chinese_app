@@ -214,7 +214,7 @@ class _CharactersScreenState extends State<CharactersScreen> {
           ),
           const Divider(height: 1, indent: 16, endIndent: 16),
           SizedBox(
-            height: 260,
+            height: 300,
             child: StrokeOrderView(word: result.characters, repeatLabel: s.repeatAnimation),
           ),
           if (result.english.isNotEmpty) ...[
