@@ -696,6 +696,14 @@ async def character_ai_lookup(req: AiLookupRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/dictionary/count")
+async def dictionary_count():
+    """Return the total number of words in the dictionary."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT COUNT(*) AS count FROM word_cache")
+    return JSONResponse({"count": row["count"]})
+
+
 @app.get("/character/random")
 async def character_random():
     """Return a random word from the word_cache table."""

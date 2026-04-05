@@ -26,6 +26,18 @@ class _CharactersScreenState extends State<CharactersScreen> {
   CharacterLookupResult? _result;
   String? _error;
   InputType _inputType = InputType.english;
+  int _wordCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCount();
+  }
+
+  Future<void> _fetchCount() async {
+    final (count, _) = await _api.fetchDictionaryCount();
+    if (mounted) setState(() => _wordCount = count);
+  }
 
   @override
   void dispose() {
@@ -123,6 +135,18 @@ class _CharactersScreenState extends State<CharactersScreen> {
                               style: const TextStyle(fontSize: 13, color: Colors.black87)),
                         ],
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('$_wordCount',
+                            style: const TextStyle(
+                                fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.red)),
+                        Text(s.words,
+                            style: const TextStyle(fontSize: 11, color: Colors.black45)),
+                      ],
                     ),
                   ],
                 ),

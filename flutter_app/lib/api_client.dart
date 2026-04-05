@@ -43,6 +43,20 @@ class ApiClient {
     }
   }
 
+  // GET /dictionary/count
+  Future<(int, String?)> fetchDictionaryCount() async {
+    try {
+      final resp = await http
+          .get(Uri.parse('$_base/dictionary/count'))
+          .timeout(const Duration(seconds: 10));
+      if (resp.statusCode != 200) return (0, 'Server error ${resp.statusCode}');
+      final json = jsonDecode(resp.body) as Map<String, dynamic>;
+      return ((json['count'] as int? ?? 0), null);
+    } catch (e) {
+      return (0, e.toString());
+    }
+  }
+
   // POST /character/lookup — local DB only
   Future<(CharacterLookupResult?, String?)> lookupCharacter(String query,
       {InputType inputType = InputType.english}) async {

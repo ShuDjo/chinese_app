@@ -60,6 +60,7 @@ class AppStrings {
          'Ова реч још није у твом речнику. Додај речи преко картице Превод да изградиш свој речник.',
          'Ova reč još nije u tvom rečniku. Dodaj reči preko kartice Prevod da izgradiš svoj rečnik.');
   String get repeatAnimation => _s('Repeat', 'Понови', 'Ponovi');
+  String get words => _s('words', 'речи', 'reči');
 
   // Flashcards screen
   String get flashcardTitle => _s('Flash Cards', 'Картице', 'Kartice');
