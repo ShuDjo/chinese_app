@@ -20,16 +20,16 @@ class AppStrings {
          'Изговорите било коју кинеску реченицу и добијте тренутну разраду реч по реч са преводима, пинјином и карактерима.',
          'Izgovorite bilo koju kinesku rečenicu i dobijte trenutnu razradu reč po reč sa prevodima, pinjiinom i karakterima.');
   String get translateBannerBodyType =>
-      _s('Type any sentence in English, Serbian, or pinyin to get translation, pinyin and characters.',
-         'Укуцајте било коју реченицу на енглеском, српском или пинјину да добијете превод, пинјин и карактере.',
-         'Ukucajte bilo koju rečenicu na engleskom, srpskom ili pinjinu da dobijete prevod, pinjin i karaktere.');
+      _s('Type any sentence in English or pinyin to get translation, pinyin and characters.',
+         'Укуцајте било коју реченицу на српском или пинјину да добијете превод, пинјин и карактере.',
+         'Ukucajte bilo koju rečenicu na srpskom ili pinjinu da dobijete prevod, pinjin i karaktere.');
   String get modeMic => _s('Mic', 'Микрофон', 'Mikrofon');
   String get modeType => _s('Type', 'Куцај', 'Kucaj');
   String get tapToRecord => _s('Tap to record', 'Додирните за снимање', 'Dodirnite za snimanje');
   String get tapToStop => _s('Tap to stop', 'Додирните за заустављање', 'Dodirnite za zaustavljanje');
   String get transcribing => _s('Transcribing…', 'Транскрипција…', 'Transkripcija…');
   String get lookingUp => _s('Looking up…', 'Претрага…', 'Pretraga…');
-  String get typeEnglishOrPinyin => _s('Type English, Serbian, or pinyin…', 'Укуцајте енглески, српски или пинјин…', 'Kucajte engleski, srpski ili pinjin…');
+  String get typeEnglishOrPinyin => _s('Type English or pinyin…', 'Укуцајте српски или пинјин…', 'Kucajte srpski ili pinjin…');
   String get lookUp => _s('Search', 'Претражи', 'Pretraži');
   String get acceptAndSave => _s('Accept and save to your dictionary', 'Прихвати и сачувај у речник', 'Prihvati i sačuvaj u rečnik');
   String get addToVocabulary => _s('Add to vocabulary', 'Додај у речник', 'Dodaj u rečnik');
@@ -46,9 +46,9 @@ class AppStrings {
   String get characterSubtitle => _s('Stroke Order & Search', 'Редослед потеза и претрага', 'Redosled poteza i pretraga');
   String get characterBannerTitle => _s('Search your dictionary', 'Претражи свој речник', 'Pretraži svoj rečnik');
   String get characterBannerBody =>
-      _s('Look up any Chinese word, English meaning, Serbian translation, or pinyin from your saved vocabulary.',
-         'Потражите било коју кинеску реч, енглеско значење, српски превод или пинјин из сачуваног речника.',
-         'Potražite bilo koju kinesku reč, englesko značenje, srpski prevod ili pinjin iz sačuvanog rečnika.');
+      _s('Look up any Chinese word, English meaning, or pinyin from your saved vocabulary.',
+         'Потражите bilo коју кинеску реч, српски превод или пинјин из сачуваног речника.',
+         'Potražite bilo koju kinesku reč, srpski prevod ili pinjin iz sačuvanog rečnika.');
   String get englishPinyinOrChinese => _s('English, pinyin, or Chinese', 'Енглески, пинјин или кинески', 'Engleski, pinjin ili kineski');
   String get characterPlaceholder => _s('e.g. hello, nǐhǎo, 你好', 'нпр. здраво, nǐhǎo, 你好', 'npr. zdravo, nǐhǎo, 你好');
   String get characterPlaceholderEnglish => _s('e.g. hello, thank you…', 'нпр. здраво, хвала…', 'npr. zdravo, hvala…');
@@ -66,9 +66,9 @@ class AppStrings {
   String get flashcardSubtitle => _s('Test yourself', 'Тестирај се', 'Testiraj se');
   String get flashcardBannerTitle => _s('Practice your vocabulary', 'Вежбај речник', 'Vežbaj rečnik');
   String get flashcardBannerBody =>
-      _s('Type the pinyin or English translation for each character from your saved vocabulary. Serbian words count too!',
-         'Унеси пинјин или енглески превод за сваки карактер из сачуваног речника. Српске речи важе!',
-         'Unesi pinjin ili engleski prevod za svaki karakter iz sačuvanog rečnika. Srpske reči važe!');
+      _s('Type the pinyin or English translation for each character from your saved vocabulary.',
+         'Унеси пинјин или српски превод за сваки карактер из сачуваног речника.',
+         'Unesi pinjin ili srpski prevod za svaki karakter iz sačuvanog rečnika.');
   String get typeAnswer => _s('Type pinyin or English…', 'Укуцај пинјин или енглески…', 'Ukucaj pinjin ili engleski…');
   String get typeAnswerEnglish => _s('Type English…', 'Укуцај енглески…', 'Ukucaj engleski…');
   String get typeAnswerSerbian => _s('Type Serbian…', 'Укуцај српски…', 'Ukucaj srpski…');
