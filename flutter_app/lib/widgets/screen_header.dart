@@ -4,10 +4,9 @@ import '../theme.dart';
 import '../language_manager.dart';
 
 class ScreenHeader extends StatelessWidget {
-  final String subtitle;
   final String title;
 
-  const ScreenHeader({super.key, required this.subtitle, this.title = 'XuéBàn'});
+  const ScreenHeader({super.key, this.title = 'XuéBàn', String subtitle = ''});
 
   @override
   Widget build(BuildContext context) {
@@ -29,38 +28,22 @@ class ScreenHeader extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text('☭', style: TextStyle(fontSize: 72, color: Colors.white)),
-              const Spacer(),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(subtitle,
-                          style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 14)),
-                      const SizedBox(width: 6),
-                      PopupMenuButton<AppLanguage>(
-                        icon: const Icon(Icons.language_rounded,
-                            color: Color(0xCCFFFFFF), size: 18),
-                        padding: EdgeInsets.zero,
-                        color: Colors.white,
-                        onSelected: (l) => context.read<LanguageManager>().setLanguage(l),
-                        itemBuilder: (_) => [
-                          _langItem(AppLanguage.english, 'English', lang.language),
-                          _langItem(AppLanguage.serbianCyrillic, 'Српски (ћирилица)', lang.language),
-                          _langItem(AppLanguage.serbianLatin, 'Srpski (latinica)', lang.language),
-                        ],
-                      ),
-                    ],
-                  ),
+              PopupMenuButton<AppLanguage>(
+                icon: const Icon(Icons.language_rounded,
+                    color: Colors.white, size: 28),
+                padding: EdgeInsets.zero,
+                color: Colors.white,
+                onSelected: (l) => context.read<LanguageManager>().setLanguage(l),
+                itemBuilder: (_) => [
+                  _langItem(AppLanguage.english, 'English', lang.language),
+                  _langItem(AppLanguage.serbianCyrillic, 'Српски (ћирилица)', lang.language),
+                  _langItem(AppLanguage.serbianLatin, 'Srpski (latinica)', lang.language),
                 ],
               ),
+              const Spacer(),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
             ],
           ),
         ),
