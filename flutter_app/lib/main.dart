@@ -45,9 +45,9 @@ class _HomeShellState extends State<HomeShell> {
 
   static const _screens = [
     TranslateScreen(),
-    ExamScreen(),
     CharactersScreen(),
     FlashcardsScreen(),
+    ExamScreen(),
   ];
 
   @override
@@ -73,16 +73,16 @@ class _HomeShellState extends State<HomeShell> {
             label: s.tabTranslate,
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.school),
-            label: s.tabExam,
-          ),
-          BottomNavigationBarItem(
             icon: const Icon(Icons.auto_stories),
             label: s.tabCharacters,
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.style),
             label: s.tabFlashcards,
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.school),
+            label: s.tabExam,
           ),
         ],
       ),
