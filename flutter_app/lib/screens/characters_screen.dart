@@ -63,7 +63,7 @@ class _CharactersScreenState extends State<CharactersScreen> {
       backgroundColor: AppTheme.warmBg,
       body: Column(
         children: [
-          ScreenHeader(subtitle: s.tabCharacters),
+          const ScreenHeader(subtitle: '词典'),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
