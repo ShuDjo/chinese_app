@@ -76,6 +76,7 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> {
           english.contains(answerLower) || pinyin.replaceAll(' ', '').contains(answerLower.replaceAll(' ', ''));
     }
     setState(() { _checked = true; _isCorrect = correct; });
+    _api.recordFlashcardAnswer(card.characters, correct);
     _focusNode.unfocus();
   }
 

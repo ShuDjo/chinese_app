@@ -62,6 +62,12 @@ async def startup():
         await conn.execute(
             "ALTER TABLE word_cache ADD COLUMN IF NOT EXISTS serbian TEXT"
         )
+        await conn.execute(
+            "ALTER TABLE word_cache ADD COLUMN IF NOT EXISTS correct_count INTEGER DEFAULT 0"
+        )
+        await conn.execute(
+            "ALTER TABLE word_cache ADD COLUMN IF NOT EXISTS incorrect_count INTEGER DEFAULT 0"
+        )
         try:
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS course_chunks (
@@ -704,12 +710,28 @@ async def dictionary_count():
     return JSONResponse({"count": row["count"]})
 
 
+class FlashcardAnswerRequest(BaseModel):
+    word: str
+    correct: bool
+
+@app.post("/flashcard/answer")
+async def flashcard_answer(req: FlashcardAnswerRequest):
+    """Record a correct or incorrect flashcard answer to adjust future selection weight."""
+    col = "correct_count" if req.correct else "incorrect_count"
+    async with pool.acquire() as conn:
+        await conn.execute(
+            f"UPDATE word_cache SET {col} = {col} + 1 WHERE word = $1", req.word
+        )
+    return JSONResponse({"ok": True})
+
+
 @app.get("/character/random")
 async def character_random():
     """Return a random word from the word_cache table."""
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT word, pinyin, english, serbian FROM word_cache ORDER BY RANDOM() LIMIT 1"
+            "SELECT word, pinyin, english, serbian FROM word_cache "
+            "ORDER BY RANDOM() ^ (1.0 / ((incorrect_count + 1.0) / (correct_count + 1.0))) DESC LIMIT 1"
         )
     if not row:
         raise HTTPException(status_code=404, detail="No characters in database")

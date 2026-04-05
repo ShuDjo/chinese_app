@@ -43,6 +43,17 @@ class ApiClient {
     }
   }
 
+  // POST /flashcard/answer
+  Future<void> recordFlashcardAnswer(String word, bool correct) async {
+    try {
+      await http.post(
+        Uri.parse('$_base/flashcard/answer'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'word': word, 'correct': correct}),
+      ).timeout(const Duration(seconds: 10));
+    } catch (_) {} // fire and forget
+  }
+
   // GET /dictionary/count
   Future<(int, String?)> fetchDictionaryCount() async {
     try {
