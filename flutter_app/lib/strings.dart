@@ -72,6 +72,7 @@ class AppStrings {
   String get correct => _s('Correct!', 'Тачно!', 'Tačno!');
   String get incorrect => _s('Not quite', 'Није тачно', 'Nije tačno');
   String get answer => _s('Answer:', 'Одговор:', 'Odgovor:');
+  String get showAnswer => _s('Show answer', 'Прикажи одговор', 'Prikaži odgovor');
   String get noWordsYet =>
       _s('No words saved yet. Use the Translate tab to add words to your vocabulary.',
          'Нема сачуваних речи. Користи картицу Превод да додаш речи.',
