@@ -193,7 +193,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
       backgroundColor: AppTheme.warmBg,
       body: Column(
         children: [
-          const ScreenHeader(),
+          ScreenHeader(subtitle: s.tabTranslate),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),

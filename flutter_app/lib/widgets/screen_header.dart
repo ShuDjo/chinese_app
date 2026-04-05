@@ -5,8 +5,9 @@ import '../language_manager.dart';
 
 class ScreenHeader extends StatelessWidget {
   final String title;
+  final String subtitle;
 
-  const ScreenHeader({super.key, this.title = 'XuéBàn', String subtitle = ''});
+  const ScreenHeader({super.key, this.title = 'XuéBàn', this.subtitle = ''});
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +42,18 @@ class ScreenHeader extends StatelessWidget {
                 ],
               ),
               const Spacer(),
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(title,
+                      style: const TextStyle(
+                          fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
+                  if (subtitle.isNotEmpty)
+                    Text(subtitle,
+                        style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 14)),
+                ],
+              ),
             ],
           ),
         ),

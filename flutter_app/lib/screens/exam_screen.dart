@@ -312,7 +312,7 @@ class _ExamScreenState extends State<ExamScreen> {
   Widget _buildSetup(AppStrings s) {
     return Column(
       children: [
-        ScreenHeader(subtitle: s.examSubtitle),
+        ScreenHeader(subtitle: s.tabExam),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),

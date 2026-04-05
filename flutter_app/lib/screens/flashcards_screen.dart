@@ -88,7 +88,7 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> {
         backgroundColor: AppTheme.warmBg,
         body: Column(
           children: [
-            ScreenHeader(subtitle: s.flashcardSubtitle),
+            ScreenHeader(subtitle: s.tabFlashcards),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
