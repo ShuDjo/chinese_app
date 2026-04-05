@@ -1,3 +1,4 @@
+import 'package:characters/characters.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../language_manager.dart';
@@ -9,6 +10,7 @@ import '../widgets/screen_header.dart';
 import '../widgets/stroke_order_view.dart';
 import '../widgets/input_type_selector.dart';
 import '../utils/input_type.dart';
+import '../utils/serbian_utils.dart';
 
 class CharactersScreen extends StatefulWidget {
   const CharactersScreen({super.key});
@@ -32,12 +34,16 @@ class _CharactersScreenState extends State<CharactersScreen> {
   }
 
   Future<void> _lookup() async {
-    final query = _controller.text.trim();
-    if (query.isEmpty) return;
-    if (!InputValidator.isValid(query, _inputType)) {
+    final rawQuery = _controller.text.trim();
+    if (rawQuery.isEmpty) return;
+    if (!InputValidator.isValid(rawQuery, _inputType)) {
       setState(() => _error = InputValidator.errorMessage(_inputType, context.read<LanguageManager>().s));
       return;
     }
+    // DB stores Serbian in Latin script (from DeepSeek) — normalize Cyrillic input to Latin
+    final query = (_inputType == InputType.serbian)
+        ? cyrillicToLatin(rawQuery)
+        : rawQuery;
     FocusScope.of(context).unfocus();
     setState(() { _isLoading = true; _result = null; _error = null; });
     final s = context.read<LanguageManager>().s;
