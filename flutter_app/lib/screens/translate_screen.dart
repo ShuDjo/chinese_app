@@ -163,22 +163,23 @@ class _TranslateScreenState extends State<TranslateScreen> {
   void _speak(String text) => _tts.speak(text);
 
   void _showStrokeSheet(String word) {
-    final s = context.read<LanguageManager>().s;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => SizedBox(
-        height: MediaQuery.of(context).size.height * 0.55,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(word, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            ),
-            Expanded(child: StrokeOrderView(word: word, repeatLabel: s.repeatAnimation)),
-          ],
+      builder: (_) => Consumer<LanguageManager>(
+        builder: (_, langMgr, __) => SizedBox(
+          height: MediaQuery.of(context).size.height * 0.55,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(word, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              ),
+              Expanded(child: StrokeOrderView(word: word, repeatLabel: langMgr.s.repeatAnimation)),
+            ],
+          ),
         ),
       ),
     );
