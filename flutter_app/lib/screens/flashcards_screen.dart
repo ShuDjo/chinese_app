@@ -261,14 +261,13 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> {
                                 color: _isCorrect ? AppTheme.jade : Colors.red,
                                 fontWeight: FontWeight.w600, fontSize: 16)),
                       ]),
-                      if (!_isCorrect) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          _inputType == InputType.serbian && (card.serbian ?? '').isNotEmpty
-                              ? '${s.answer} ${card.serbian}'
-                              : '${s.answer} ${card.pinyin} · ${card.english}',
-                          style: const TextStyle(fontSize: 14),
-                        ),
+                      const SizedBox(height: 8),
+                      Text('${card.pinyin}  ·  ${card.english}',
+                          style: const TextStyle(fontSize: 14, color: Colors.black54)),
+                      if ((card.serbian ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(card.serbian!,
+                            style: const TextStyle(fontSize: 14, color: Colors.black54)),
                       ],
                     ],
                   ),

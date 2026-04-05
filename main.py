@@ -98,7 +98,8 @@ async def store_words(entries: list[dict]) -> None:
         await conn.executemany(
             "INSERT INTO word_cache (word, english, pinyin, serbian) VALUES ($1, $2, $3, $4) "
             "ON CONFLICT (word) DO NOTHING",
-            [(e["word"], e["english"], e["pinyin"], e.get("serbian")) for e in entries],
+            [(e["word"], e["english"], e["pinyin"],
+              cyrillic_to_latin(e["serbian"]) if e.get("serbian") else None) for e in entries],
         )
 
 
@@ -155,6 +156,23 @@ async def cache_stroke_data(words: list[str]) -> None:
         results = await asyncio.gather(*[_fetch_stroke_cdn(c, http) for c in missing])
     new_entries = [{"character": char, "stroke_data": data} for char, data in results if data]
     await store_strokes(new_entries)
+
+
+# ── Serbian script helpers ────────────────────────────────────────────────────
+
+_CYRILLIC_TO_LATIN = str.maketrans(
+    'абвгдежзијклмнопрстуфхцАБВГДЕЖЗИЈКЛМНОПРСТУФХЦ',
+    'abvgdežzijklmnoprstufhcABVGDEŽZIJKLMNOPRSTUFHC',
+)
+_CYRILLIC_DIGRAPHS = [
+    ('љ', 'lj'), ('њ', 'nj'), ('џ', 'dž'), ('ђ', 'đ'), ('ћ', 'ć'), ('ш', 'š'), ('ч', 'č'), ('ж', 'ž'),
+    ('Љ', 'Lj'), ('Њ', 'Nj'), ('Џ', 'Dž'), ('Ђ', 'Đ'), ('Ћ', 'Ć'), ('Ш', 'Š'), ('Ч', 'Č'), ('Ж', 'Ž'),
+]
+
+def cyrillic_to_latin(s: str) -> str:
+    for cyrl, lat in _CYRILLIC_DIGRAPHS:
+        s = s.replace(cyrl, lat)
+    return s.translate(_CYRILLIC_TO_LATIN)
 
 
 # ── LLM helpers ───────────────────────────────────────────────────────────────
@@ -588,11 +606,16 @@ async def character_lookup(req: CharacterLookupRequest):
                 query, like,
             )
         elif req.input_type == "serbian":
+            # Search both the original query and its transliterated form so
+            # Cyrillic input matches Latin-stored values and vice versa
+            like_alt = f"%{cyrillic_to_latin(query).lower()}%"
             row = await conn.fetchrow(
                 """SELECT word, pinyin, english, serbian FROM word_cache
-                   WHERE word = $1 OR LOWER(COALESCE(serbian, '')) ILIKE $2
+                   WHERE word = $1
+                      OR LOWER(COALESCE(serbian, '')) ILIKE $2
+                      OR LOWER(COALESCE(serbian, '')) ILIKE $3
                    LIMIT 1""",
-                query, like,
+                query, like, like_alt,
             )
         elif req.input_type == "pinyin":
             row = await conn.fetchrow(
