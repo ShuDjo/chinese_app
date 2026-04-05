@@ -5,7 +5,7 @@ class AppStrings {
   const AppStrings(this.lang);
 
   // Tab labels
-  String get tabTranslate => _s('Translate', 'Превод', 'Prevod');
+  String get tabTranslate => _s('Explore', 'Истражи', 'Istraži');
   String get tabExam => _s('Exam', 'Испит', 'Ispit');
   String get tabCharacters => _s('My Dictionary', 'Мој речник', 'Moj rečnik');
   String get tabFlashcards => _s('Flash Cards', 'Картице', 'Kartice');
