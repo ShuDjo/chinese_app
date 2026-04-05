@@ -196,7 +196,11 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> {
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _checked ? null : _check(),
                 decoration: InputDecoration(
-                  hintText: s.typeAnswer,
+                  hintText: _inputType == InputType.pinyin
+                      ? s.typeAnswerPinyin
+                      : _inputType == InputType.serbian
+                          ? s.typeAnswerSerbian
+                          : s.typeAnswerEnglish,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide(

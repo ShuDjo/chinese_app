@@ -51,6 +51,9 @@ class AppStrings {
          'Potražite bilo koju kinesku reč, englesko značenje, srpski prevod ili pinjin iz sačuvanog rečnika.');
   String get englishPinyinOrChinese => _s('English, pinyin, or Chinese', 'Енглески, пинјин или кинески', 'Engleski, pinjin ili kineski');
   String get characterPlaceholder => _s('e.g. hello, nǐhǎo, 你好', 'нпр. здраво, nǐhǎo, 你好', 'npr. zdravo, nǐhǎo, 你好');
+  String get characterPlaceholderEnglish => _s('e.g. hello, thank you…', 'нпр. здраво, хвала…', 'npr. zdravo, hvala…');
+  String get characterPlaceholderSerbian => _s('e.g. zdravo, hvala…', 'нпр. здраво, хвала…', 'npr. zdravo, hvala…');
+  String get characterPlaceholderPinyin  => _s('e.g. nǐhǎo, xièxie…', 'нпр. nǐhǎo, xièxie…', 'npr. nǐhǎo, xièxie…');
   String get characterHint => _s('Search works across all saved words', 'Претрага ради по свим сачуваним речима', 'Pretraga radi po svim sačuvanim rečima');
   String get notInDictionary =>
       _s('This word is not in your dictionary yet. Save words via the Translate tab to build your collection.',
@@ -67,6 +70,9 @@ class AppStrings {
          'Унеси пинјин или енглески превод за сваки карактер из сачуваног речника. Српске речи важе!',
          'Unesi pinjin ili engleski prevod za svaki karakter iz sačuvanog rečnika. Srpske reči važe!');
   String get typeAnswer => _s('Type pinyin or English…', 'Укуцај пинјин или енглески…', 'Ukucaj pinjin ili engleski…');
+  String get typeAnswerEnglish => _s('Type English…', 'Укуцај енглески…', 'Ukucaj engleski…');
+  String get typeAnswerSerbian => _s('Type Serbian…', 'Укуцај српски…', 'Ukucaj srpski…');
+  String get typeAnswerPinyin  => _s('Type pinyin…', 'Укуцај пинјин…', 'Ukucaj pinjin…');
   String get check => _s('Check', 'Провери', 'Proveri');
   String get next => _s('Next', 'Следеће', 'Sledeće');
   String get correct => _s('Correct!', 'Тачно!', 'Tačno!');

@@ -155,7 +155,11 @@ class _CharactersScreenState extends State<CharactersScreen> {
                 child: TextField(
                   controller: _controller,
                   decoration: InputDecoration(
-                    hintText: s.characterPlaceholder,
+                    hintText: _inputType == InputType.pinyin
+                        ? s.characterPlaceholderPinyin
+                        : _inputType == InputType.serbian
+                            ? s.characterPlaceholderSerbian
+                            : s.characterPlaceholderEnglish,
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                     filled: true, fillColor: const Color(0xFFF2F2F7),
