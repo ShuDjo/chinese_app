@@ -141,9 +141,6 @@ class _CharactersScreenState extends State<CharactersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(s.englishPinyinOrChinese,
-              style: const TextStyle(color: AppTheme.red, fontWeight: FontWeight.w600, fontSize: 15)),
-          const SizedBox(height: 10),
           InputTypeSelector(
             selected: _inputType,
             onChanged: (t) => setState(() { _inputType = t; _error = null; }),
