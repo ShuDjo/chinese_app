@@ -704,11 +704,30 @@ async def character_random():
         )
     if not row:
         raise HTTPException(status_code=404, detail="No characters in database")
+
+    serbian = row["serbian"] or ""
+
+    # If Serbian is missing, generate it on the fly and cache it
+    if not serbian:
+        try:
+            translations = await _translate_words([row["word"]])
+            if translations:
+                raw_serbian = translations[0].get("serbian", "") or ""
+                serbian = cyrillic_to_latin(raw_serbian) if raw_serbian else ""
+                if serbian:
+                    async with pool.acquire() as conn:
+                        await conn.execute(
+                            "UPDATE word_cache SET serbian = $1 WHERE word = $2",
+                            serbian, row["word"]
+                        )
+        except Exception:
+            pass  # Fall through with empty Serbian if generation fails
+
     return JSONResponse({
         "characters": row["word"],
         "pinyin": row["pinyin"],
         "english": row["english"],
-        "serbian": row["serbian"] or "",
+        "serbian": serbian,
     })
 
 

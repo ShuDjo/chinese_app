@@ -217,11 +217,20 @@ class _CharactersScreenState extends State<CharactersScreen> {
             height: 300,
             child: StrokeOrderView(word: result.characters, repeatLabel: s.repeatAnimation),
           ),
-          if (result.english.isNotEmpty) ...[
+          if (result.english.isNotEmpty || (result.serbian ?? '').isNotEmpty) ...[
             const Divider(height: 1, indent: 16, endIndent: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Text(result.english, style: const TextStyle(fontSize: 17, color: Colors.black54)),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: Column(
+                children: [
+                  if (result.english.isNotEmpty)
+                    Text(result.english, style: const TextStyle(fontSize: 17, color: Colors.black54)),
+                  if ((result.serbian ?? '').isNotEmpty) ...[
+                    if (result.english.isNotEmpty) const SizedBox(height: 4),
+                    Text(result.serbian!, style: const TextStyle(fontSize: 17, color: Colors.black54)),
+                  ],
+                ],
+              ),
             ),
           ],
         ],
