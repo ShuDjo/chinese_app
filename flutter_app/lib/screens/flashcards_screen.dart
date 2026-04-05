@@ -63,8 +63,14 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> {
     final answerLower = answer.toLowerCase();
     final pinyin = card.pinyin.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\u00c0-\u024f ]'), '');
     final english = card.english.toLowerCase();
-    final correct = answerLower == pinyin || answerLower == english ||
-        english.contains(answerLower) || pinyin.replaceAll(' ', '').contains(answerLower.replaceAll(' ', ''));
+    final serbian = (card.serbian ?? '').toLowerCase();
+    final bool correct;
+    if (_inputType == InputType.serbian) {
+      correct = answerLower == serbian || serbian.contains(answerLower);
+    } else {
+      correct = answerLower == pinyin || answerLower == english ||
+          english.contains(answerLower) || pinyin.replaceAll(' ', '').contains(answerLower.replaceAll(' ', ''));
+    }
     setState(() { _checked = true; _isCorrect = correct; });
     _focusNode.unfocus();
   }
@@ -240,8 +246,12 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> {
                       ]),
                       if (!_isCorrect) ...[
                         const SizedBox(height: 8),
-                        Text('${s.answer} ${card.pinyin} · ${card.english}',
-                            style: const TextStyle(fontSize: 14)),
+                        Text(
+                          _inputType == InputType.serbian && card.serbian != null
+                              ? '${s.answer} ${card.serbian}'
+                              : '${s.answer} ${card.pinyin} · ${card.english}',
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       ],
                     ],
                   ),
