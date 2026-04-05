@@ -9,6 +9,7 @@ import '../strings.dart';
 import '../theme.dart';
 import '../api_client.dart';
 import '../models.dart';
+import '../widgets/screen_header.dart';
 import '../widgets/stroke_order_view.dart';
 import '../widgets/input_type_selector.dart';
 import '../utils/input_type.dart';
@@ -192,7 +193,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
       backgroundColor: AppTheme.warmBg,
       body: Column(
         children: [
-          _buildHeader(s),
+          const ScreenHeader(),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
@@ -222,41 +223,6 @@ class _TranslateScreenState extends State<TranslateScreen> {
     );
   }
 
-  Widget _buildHeader(AppStrings s) {
-    return Container(
-      height: 140 + MediaQuery.of(context).padding.top,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppTheme.red, Color(0xFFB71010)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text('☭', style: TextStyle(fontSize: 72, color: Colors.white)),
-              const Spacer(),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Text('XuéBàn',
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text(s.translateSubtitle,
-                      style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 14)),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildModePicker(AppStrings s) {
     return Container(
