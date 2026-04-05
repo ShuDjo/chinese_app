@@ -6,7 +6,6 @@ import 'screens/translate_screen.dart';
 import 'screens/exam_screen.dart';
 import 'screens/characters_screen.dart';
 import 'screens/flashcards_screen.dart';
-import 'screens/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +48,6 @@ class _HomeShellState extends State<HomeShell> {
     ExamScreen(),
     CharactersScreen(),
     FlashcardsScreen(),
-    SettingsScreen(),
   ];
 
   @override
@@ -71,7 +69,7 @@ class _HomeShellState extends State<HomeShell> {
         elevation: 8,
         items: [
           BottomNavigationBarItem(
-            icon: const Icon(Icons.translate),
+            icon: const Icon(Icons.explore_rounded),
             label: s.tabTranslate,
           ),
           BottomNavigationBarItem(
@@ -85,10 +83,6 @@ class _HomeShellState extends State<HomeShell> {
           BottomNavigationBarItem(
             icon: const Icon(Icons.style),
             label: s.tabFlashcards,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.settings),
-            label: s.tabSettings,
           ),
         ],
       ),
